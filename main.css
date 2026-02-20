@@ -1,0 +1,12 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --ferremat-orange: #F37021;
+  --ferremat-blue: #3333FF;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+}
