@@ -3,10 +3,10 @@
 @tailwind utilities;
 
 :root {
-  --ferremat-orange: #F37021;
-  --ferremat-blue: #3333FF;
+  --ferremat-orange: #ff7f27;
+  --ferremat-blue: #3e3aff;
 }
 
 body {
-  font-family: 'Inter', sans-serif;
+  font-family: "Inter", sans-serif;
 }

@@ -11,8 +11,8 @@ export default {
   theme: {
     extend: {
       colors: {
-        'ferremat-orange': '#F37021', 
-        'ferremat-blue': '#3333FF',   
+        'ferremat-orange': '#FF7F27', 
+        'ferremat-blue': '#3E3AFF',   
       }
     },
   },

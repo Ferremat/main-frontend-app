@@ -1,24 +1,28 @@
 <script setup lang="ts">
-import { ref } from 'vue';
 import ProductCard from './ProductCard.vue';
 
-const products = ref(Array(8).fill({
-  title: 'Taladro Profesional',
-  description: 'Es un taladro para profesionales y trabajos pesados.',
-  price: 50.33,
-  category: 'Herramientas',
-  inStock: true,
-  image: 'https://images.unsplash.com/photo-1504148455328-c376907d081c?q=80&w=2000&auto=format&fit=crop' // Placeholder drill image
-}));
+const products = [
+  { title: 'Destornillador eléctrico', image: 'https://images.unsplash.com/photo-1540103359371-3e91216ae39c?auto=format&fit=crop&q=80&w=500' },
+  { title: 'Taladro Bosch', image: 'https://images.unsplash.com/photo-1504148455328-c376907d081c?auto=format&fit=crop&q=80&w=500' },
+  { title: 'Taladro Makita', image: 'https://images.unsplash.com/photo-1572981779307-38b8cabb2407?auto=format&fit=crop&q=80&w=500' },
+  { title: 'Bruguer Pintura', image: 'https://images.unsplash.com/photo-1589939705384-5185137a7f0f?auto=format&fit=crop&q=80&w=500' },
+  { title: 'Brocha', image: 'https://images.unsplash.com/photo-1520209268518-973151f39ad9?auto=format&fit=crop&q=80&w=500' },
+  { title: 'Brocas set', image: 'https://images.unsplash.com/photo-1581147036324-c17da42ef5e0?auto=format&fit=crop&q=80&w=500' },
+  { title: 'Sierra Circular', image: 'https://images.unsplash.com/photo-1586864387917-f53bc404e750?auto=format&fit=crop&q=80&w=500' },
+  { title: 'Cincel', image: 'https://images.unsplash.com/photo-1513467535987-fd81bc7d62f8?auto=format&fit=crop&q=80&w=500' },
+  { title: 'Cable cobre', image: 'https://images.unsplash.com/photo-1605810230434-7631ac76ec81?auto=format&fit=crop&q=80&w=500' },
+  { title: 'Tubería negra', image: 'https://images.unsplash.com/photo-1585776245991-cf89dd7fc73a?auto=format&fit=crop&q=80&w=500' },
+];
 </script>
 
 <template>
-  <div class="container mx-auto px-4 py-12">
-    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+  <div class="container mx-auto px-4 py-8">
+    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
       <ProductCard 
         v-for="(product, index) in products" 
         :key="index"
-        v-bind="product"
+        :title="product.title"
+        :image="product.image"
       />
     </div>
   </div>
