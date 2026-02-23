@@ -2,7 +2,7 @@
 import ProductCard from './ProductCard.vue';
 
 const products = [
-  { title: 'Destornillador eléctrico', image: 'https://images.unsplash.com/photo-1540103359371-3e91216ae39c?auto=format&fit=crop&q=80&w=500' },
+  { title: 'Destornillador eléctrico', image: 'https://imgs.search.brave.com/lPiWNtrX9VB5WU6f6qcARrz50HFNIGXM8df1v9ZGBAM/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9zdDUu/ZGVwb3NpdHBob3Rv/cy5jb20vNTEwMTI4/MDYvNjYwOTMvaS80/NTAvZGVwb3NpdHBo/b3Rvc182NjA5MzA2/OTQtc3RvY2stcGhv/dG8tY3Jvc3Mtc2Ny/ZXdkcml2ZXItcmVk/LWhhbmRsZS13b29k/ZW4uanBn' },
   { title: 'Taladro Bosch', image: 'https://images.unsplash.com/photo-1504148455328-c376907d081c?auto=format&fit=crop&q=80&w=500' },
   { title: 'Taladro Makita', image: 'https://images.unsplash.com/photo-1572981779307-38b8cabb2407?auto=format&fit=crop&q=80&w=500' },
   { title: 'Bruguer Pintura', image: 'https://images.unsplash.com/photo-1589939705384-5185137a7f0f?auto=format&fit=crop&q=80&w=500' },
