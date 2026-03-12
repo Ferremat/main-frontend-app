@@ -1,80 +1,35 @@
 <script setup lang="ts">
 import ProductCard from './ProductCard.vue';
 
-const products = [
-  {
-    title: 'Taladro Percutor Profesional',
-    brand: 'DeWalt',
-    image: 'https://imgs.search.brave.com/4K9bBdg3M7waAm7vZfr0Bx0F8cX8cpd0-1MUZbgs5GI/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9tLm1l/ZGlhLWFtYXpvbi5j/b20vaW1hZ2VzL0kv/ODFkLVk5OWx2VEwu/anBn',
-    description: 'Taladro percutor de alto rendimiento con velocidad variable y función de martillo. Ideal para trabajos exigentes.',
-    price: 1299.99,
-    category: 'herramientas',
-    stock: 15,
-  },
-  {
-    title: 'Juego de Destornilladores 12 Piezas',
-    brand: 'Stanley',
-    image: 'https://imgs.search.brave.com/0ASGG330HnBYnvHP6gGMDW7vxtGQQlcf0AmcCXZvBgg/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9tZWRp/YS5hZGVvLmNvbS9t/a3AvM2NlNDk5ZGIy/YWYwYjcwZTE3ZGY2/N2NkNDRmNGYyN2Iv/bWVkaWEuanBlZz93/aWR0aD02NDA',
-    description: 'Set completo de destornilladores con puntas magnéticas y mangos ergonómicos.',
-    price: 349.99,
-    category: 'herramientas',
-    stock: 30,
-  },
-  {
-    title: 'Martillo de Carpintero',
-    brand: 'Truper',
-    image: 'https://imgs.search.brave.com/gjdZZHXlHpcohKWCrlN6OqzWXc8puKrWOlpmN96Ltao/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9zaWFz/dW1pbmlzdHJvcy5j/b20vMTg2NzMyNy1i/aWdfZGVmYXVsdC9t/YXJ0aWxsby1jYXJw/aW50ZXJvLWJlbGxv/dGEtODAwNy5qcGc',
-    description: 'Martillo profesional con mango de fibra de vidrio, cabeza de acero forjado y extractor de clavos.',
-    price: 189.99,
-    category: 'herramientas',
-    stock: 25,
-  },
-  {
-    title: 'Sierra Circular 7 1/4"',
-    brand: 'Makita',
-    image: 'https://imgs.search.brave.com/QtLcHE4RIZya6XLEGhFgKUipTxhHvn9YPtLdEtNKiqU/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9kYXRh/LnNhbml0aW5vLmV1/L1BST0RVQ1QtNTc4/NzQ5LzcxYjFlOWJk/YWQ0M2U3MThlYTky/ZDcwOD92PThhM2Vi/Y2Zl',
-    description: 'Sierra circular eléctrica con guía láser, ideal para cortes precisos en madera y materiales de construcción.',
-    price: 899.99,
-    category: 'herramientas',
-    stock: 10,
-  },
-  {
-    title: 'Pintura Interior Blanco Mate 4L',
-    brand: 'Bruguer',
-    image: 'https://imgs.search.brave.com/6Pa3_DdFrimuyfAZ0yqoE79w0JuQpuF2Qyw_CzS7AsM/rs:fit:500:0:1:0/g:ce/aHR0cHM6Ly9tZWRp/YS5hZGVvLmNvbS9t/ZWRpYS8zNTg2MDQx/L21lZGlhLmpwZz93/aWR0aD02NDA',
-    description: 'Pintura de alta cobertura para interiores, acabado mate y resistente a la humedad.',
-    price: 159.99,
-    category: 'pintura',
-    stock: 20,
-  },
-  {
-    title: 'Brocha Profesional 4"',
-    brand: 'Purdy',
-    image: 'https://imgs.search.brave.com/54YsJTTvxEW-4DNH9ZTKpz8kC5fwR2IvCwtkAvl7xro/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly93d3cu/YnlwLmNvbS5teC9j/ZG4vc2hvcC9wcm9k/dWN0cy9CUkU0MF9C/Uk9DSEFfTEFfUkVH/SUFfNGluY2guanBn/P3Y9MTU3Mjk4ODg3/OCZ3aWR0aD0xMDAw',
-    description: 'Brocha de cerdas naturales para aplicación uniforme de pintura. Mango ergonómico antideslizante.',
-    price: 89.99,
-    category: 'pintura',
-    stock: 40,
-  },
-  {
-    title: 'Cable Cobre THW 12 AWG',
-    brand: 'Condumex',
-    image: 'https://imgs.search.brave.com/8qAKjBnWPnJ4LMhpR-srPpFgQPpe1eIf8b9txWcaIwI/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly93d3cu/ZWxla3Ryb24uY29t/Lm14L21lZGlhL2Nh/dGFsb2cvcHJvZHVj/dC9jYWNoZS9kMGEz/MDI4YzlhZjZmYmVl/MTdlZDYwMTI4MTYy/ZGI1My9pL3UvaXUt/Y3Rody0xMnYuanBn',
-    description: 'Cable eléctrico de cobre puro calibre 12, aislamiento THW resistente al calor y humedad. Rollo de 100m.',
-    price: 549.99,
-    category: 'eléctrico',
-    stock: 12,
-  },
-  {
-    title: 'Tubería PVC 1/2" x 3m',
-    brand: 'Amanco',
-    image: 'https://imgs.search.brave.com/yXxKUtU4S8NBuaZcyhbH1wV0P1p3hG9cDrrnTtgrRl4/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly8wYTQ3/MDc4NGRiLmNiYXVs/LWNkbnduZC5jb20v/YzgzZjJkOTdiNDY4/OGRjNzhkOWQ5ZDAw/ZTYyMTIyYmUvMjAw/MDAwMDIzLTg3M2Q5/ODczZGIvVFVCTy1Q/QVJBLURFU0FHVUUt/UFZDLVNBTC5qcGc_/cGg9MGE0NzA3ODRk/Yg',
-    description: 'Tubo de PVC hidráulico de alta presión, para instalaciones de agua potable y sistemas de riego.',
-    price: 45.00,
-    category: 'plomería',
-    stock: 60,
-  },
-];
+const { fetchProducts } = useApi();
+
+const products = ref<any[]>([]);
+const loading = ref(true);
+const error = ref<string | null>(null);
+
+onMounted(async () => {
+  try {
+    const data = await fetchProducts();
+    products.value = data;
+  } catch (e: any) {
+    error.value = 'No se pudieron cargar los productos. Intenta de nuevo más tarde.';
+  } finally {
+    loading.value = false;
+  }
+});
+
+// Mapea los campos de la API a los props que espera ProductCard
+const mappedProducts = computed(() =>
+  products.value.map((p) => ({
+    title: p.name,
+    brand: p.category?.name ?? '',
+    image: p.imageUrl ?? 'https://placehold.co/400x300?text=Sin+Imagen',
+    description: p.description ?? '',
+    price: Number(p.price) || 0,
+    category: p.category?.name ?? '',
+    stock: p.stock ?? 0,
+  }))
+);
 </script>
 
 <template>
@@ -82,12 +37,35 @@ const products = [
     <!-- Section header -->
     <div class="mb-6">
       <h2 class="text-ferremat-blue font-bold text-2xl">Todos los Productos</h2>
-      <p class="text-slate-500 text-sm mt-1">{{ products.length }} productos encontrados</p>
+      <p class="text-slate-500 text-sm mt-1">{{ mappedProducts.length }} productos encontrados</p>
     </div>
 
-    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+    <!-- Error state -->
+    <div v-if="error" class="flex items-center gap-2 bg-red-50 border border-red-200 text-red-700 rounded-lg p-4 mb-6">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+      </svg>
+      <span class="text-sm">{{ error }}</span>
+    </div>
+
+    <!-- Loading skeleton -->
+    <div v-if="loading" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+      <div v-for="n in 8" :key="n" class="bg-white rounded-2xl overflow-hidden shadow-sm border border-slate-100 animate-pulse">
+        <div class="h-52 bg-slate-200"></div>
+        <div class="p-4 space-y-3">
+          <div class="h-3 bg-slate-200 rounded w-1/3"></div>
+          <div class="h-4 bg-slate-200 rounded w-3/4"></div>
+          <div class="h-3 bg-slate-200 rounded w-full"></div>
+          <div class="h-3 bg-slate-200 rounded w-2/3"></div>
+          <div class="h-6 bg-slate-200 rounded w-1/4 mt-2"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Products grid -->
+    <div v-else class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
       <ProductCard
-        v-for="(product, index) in products"
+        v-for="(product, index) in mappedProducts"
         :key="index"
         :title="product.title"
         :brand="product.brand"
