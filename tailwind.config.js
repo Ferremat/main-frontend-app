@@ -12,7 +12,7 @@ export default {
     extend: {
       colors: {
         'ferremat-orange': '#FF7F27', 
-        'ferremat-blue': '#3E3AFF',   
+        'ferremat-blue': '#4A6FA5',   
       }
     },
   },
