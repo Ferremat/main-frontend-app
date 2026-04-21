@@ -3,36 +3,37 @@ import { Search, ShoppingBag, User, Settings, Hammer } from 'lucide-vue-next';
 
 interface NavLink {
   label: string;
-  href: string;
+  to: string;
 }
 
 const navLinks: NavLink[] = [
-  { label: 'Conocenos', href: '#' },
-  { label: 'Productos', href: '#' },
-  { label: 'Novedades', href: '#' },
-  { label: 'Contactanos', href: '#' },
+  { label: 'Inicio', to: '/' },
+  { label: 'Conócenos', to: '/conocenos' },
+  { label: 'Contáctanos', to: '/contactanos' },
 ];
 </script>
 
 <template>
   <header class="bg-ferremat-blue px-6 py-4 flex items-center justify-between sticky top-0 z-50">
     <!-- Logo -->
-    <div class="flex items-center">
+    <NuxtLink to="/" class="flex items-center">
       <div class="bg-ferremat-orange text-white p-2.5 rounded-md flex items-center justify-center">
         <Hammer class="w-8 h-8" stroke-width="2.5" />
       </div>
-    </div>
+    </NuxtLink>
 
     <!-- Navigation Links -->
     <nav class="hidden lg:flex items-center gap-8 ml-8">
-      <a 
-        v-for="link in navLinks" 
-        :key="link.label" 
-        :href="link.href"
+      <NuxtLink
+        v-for="link in navLinks"
+        :key="link.label"
+        :to="link.to"
         class="text-white font-bold text-lg hover:text-white/80 transition-colors"
+        active-class="text-ferremat-orange"
+        exact-active-class="text-ferremat-orange"
       >
         {{ link.label }}
-      </a>
+      </NuxtLink>
     </nav>
 
     <!-- Action Icons -->
