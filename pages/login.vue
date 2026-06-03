@@ -3,17 +3,28 @@ import { ref, computed } from 'vue';
 import { Mail, Lock, Eye, EyeOff, LogIn, Hammer, ArrowRight } from 'lucide-vue-next';
 
 const { lang, theme } = useSettings();
+const { login } = useAuth();
+const router = useRouter();
 
 const form = ref({ email: '', password: '' });
 const showPassword = ref(false);
 const loading = ref(false);
 const error = ref('');
+const rememberMe = ref(false);
 
 async function handleLogin() {
   error.value = '';
   loading.value = true;
+  // Simulación de llamada a API (sustituir por llamada real)
   await new Promise((r) => setTimeout(r, 1200));
   loading.value = false;
+
+  // Extraer nombre del email mientras no haya API real
+  const namePart = form.value.email.split('@')[0];
+  const name = namePart.charAt(0).toUpperCase() + namePart.slice(1);
+
+  login({ name, email: form.value.email });
+  router.push('/');
 }
 
 const t = computed(() => ({
@@ -60,11 +71,11 @@ useHead({
 <template>
   <div class="min-h-screen transition-colors duration-300" :class="pageBg">
 
-    <!-- Hero Banner -->
-    <div class="relative h-52 overflow-hidden">
+    <!-- Hero Banner — pt-16 compensa el header sticky -->
+    <div class="relative h-64 overflow-hidden">
       <div class="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1504307651254-35680f356dfd?auto=format&fit=crop&q=80&w=2070')] bg-cover bg-center scale-105" />
       <div class="absolute inset-0 bg-gradient-to-r from-ferremat-blue/90 via-ferremat-blue/70 to-ferremat-blue/40" />
-      <div class="relative h-full flex flex-col items-center justify-center text-center px-6">
+      <div class="relative h-full flex flex-col items-center justify-center text-center px-6 pt-4">
         <div class="flex items-center gap-3 mb-3">
           <div class="bg-ferremat-orange p-2 rounded-md">
             <Hammer class="w-6 h-6 text-white" stroke-width="2.5" />
@@ -77,7 +88,7 @@ useHead({
     </div>
 
     <!-- Login Card -->
-    <section class="max-w-md mx-auto px-6 -mt-8 pb-20">
+    <section class="relative z-10 max-w-md mx-auto px-6 -mt-10 pb-20">
       <div class="rounded-2xl shadow-md border p-8 transition-colors duration-300" :class="cardBg">
 
         <!-- Card Header -->

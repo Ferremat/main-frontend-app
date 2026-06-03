@@ -1,31 +1,43 @@
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount } from 'vue';
-import { Search, ShoppingBag, User, Settings, Hammer, Languages, Sun, Moon, FileText, ChevronDown } from 'lucide-vue-next';
-
-interface NavLink {
-  label: string;
-  to: string;
-}
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
+import {
+  Search, ShoppingBag, User, Settings, Hammer,
+  Languages, Sun, Moon, FileText, LogOut, ChevronDown,
+} from 'lucide-vue-next';
 
 const { lang, theme, toggleLang, toggleTheme } = useSettings();
+const { isLoggedIn, firstName, initials, logout } = useAuth();
+const { totalItems } = useCart();
+const router = useRouter();
 
-const navLinks: NavLink[] = [
-  { label: 'Inicio', to: '/' },
-  { label: 'Conócenos', to: '/conocenos' },
+const navLinks = [
+  { label: 'Inicio',      to: '/' },
+  { label: 'Conócenos',   to: '/conocenos' },
   { label: 'Contáctanos', to: '/contactanos' },
 ];
 
-// ── Settings dropdown ─────────────────────────────────────────────────────────
+// ── Settings dropdown ───────────────────────────────────────────────────────
 const settingsOpen = ref(false);
-const settingsRef = ref<HTMLElement | null>(null);
+const settingsRef  = ref<HTMLElement | null>(null);
+function toggleSettings() { settingsOpen.value = !settingsOpen.value; }
 
-function toggleSettings() {
-  settingsOpen.value = !settingsOpen.value;
+// ── User dropdown ───────────────────────────────────────────────────────────
+const userOpen = ref(false);
+const userRef  = ref<HTMLElement | null>(null);
+function toggleUserMenu() { userOpen.value = !userOpen.value; }
+
+function handleLogout() {
+  logout();
+  userOpen.value = false;
+  router.push('/login');
 }
 
 function handleOutsideClick(e: MouseEvent) {
   if (settingsRef.value && !settingsRef.value.contains(e.target as Node)) {
     settingsOpen.value = false;
+  }
+  if (userRef.value && !userRef.value.contains(e.target as Node)) {
+    userOpen.value = false;
   }
 }
 
@@ -35,6 +47,7 @@ onBeforeUnmount(() => document.removeEventListener('click', handleOutsideClick))
 
 <template>
   <header class="bg-ferremat-blue px-6 py-4 flex items-center justify-between sticky top-0 z-50 shadow-md">
+
     <!-- Logo -->
     <NuxtLink to="/" class="flex items-center">
       <div class="bg-ferremat-orange text-white p-2.5 rounded-md flex items-center justify-center">
@@ -58,13 +71,36 @@ onBeforeUnmount(() => document.removeEventListener('click', handleOutsideClick))
 
     <!-- Action Icons -->
     <div class="flex items-center gap-6 text-white">
-      <button class="hover:text-white/80 transition-colors" :aria-label="lang === 'es' ? 'Buscar' : 'Search'">
+
+      <!-- Search -->
+      <button
+        class="hover:text-white/80 transition-colors"
+        :aria-label="lang === 'es' ? 'Buscar' : 'Search'"
+      >
         <Search class="w-8 h-8" stroke-width="2" />
       </button>
-      <button class="hover:text-white/80 transition-colors" :aria-label="lang === 'es' ? 'Mi carrito' : 'My cart'">
-        <ShoppingBag class="w-8 h-8" stroke-width="2" />
-      </button>
+
+      <!-- Shopping bag — navega al carrito + badge contador -->
       <NuxtLink
+        to="/carrito"
+        class="relative hover:text-white/80 transition-colors"
+        :aria-label="lang === 'es' ? 'Mi carrito' : 'My cart'"
+      >
+        <ShoppingBag class="w-8 h-8" stroke-width="2" />
+        <!-- Badge -->
+        <Transition name="badge">
+          <span
+            v-if="totalItems > 0"
+            class="absolute -top-2 -right-2 bg-ferremat-orange text-white text-[10px] font-extrabold w-5 h-5 rounded-full flex items-center justify-center leading-none shadow"
+          >
+            {{ totalItems > 99 ? '99+' : totalItems }}
+          </span>
+        </Transition>
+      </NuxtLink>
+
+      <!-- ── USER: sin sesión → enlace al login ─────────────────────────── -->
+      <NuxtLink
+        v-if="!isLoggedIn"
         to="/login"
         class="hover:text-white/80 transition-colors"
         :aria-label="lang === 'es' ? 'Iniciar sesión' : 'Sign in'"
@@ -72,7 +108,66 @@ onBeforeUnmount(() => document.removeEventListener('click', handleOutsideClick))
         <User class="w-8 h-8" stroke-width="2" />
       </NuxtLink>
 
-      <!-- Settings Dropdown Trigger -->
+      <!-- ── USER: con sesión → avatar + nombre + dropdown ─────────────── -->
+      <div v-else ref="userRef" class="relative">
+        <button
+          id="user-menu-toggle"
+          @click.stop="toggleUserMenu"
+          class="flex items-center gap-2 hover:text-white/80 transition-colors"
+          :aria-expanded="userOpen"
+          :aria-label="lang === 'es' ? 'Menú de usuario' : 'User menu'"
+        >
+          <!-- Avatar circle -->
+          <div class="w-8 h-8 bg-ferremat-orange rounded-full flex items-center justify-center text-white text-sm font-extrabold ring-2 ring-white/30 flex-shrink-0">
+            {{ initials }}
+          </div>
+          <!-- First name (hidden on small screens) -->
+          <span class="hidden sm:block text-sm font-bold max-w-[96px] truncate">{{ firstName }}</span>
+          <ChevronDown
+            class="w-4 h-4 transition-transform duration-200"
+            :class="{ 'rotate-180': userOpen }"
+            stroke-width="2.5"
+          />
+        </button>
+
+        <!-- User dropdown -->
+        <Transition name="dropdown">
+          <div
+            v-if="userOpen"
+            class="absolute right-0 top-full mt-3 w-56 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden"
+          >
+            <!-- User info header -->
+            <div class="bg-ferremat-blue/5 border-b border-gray-100 px-4 py-3">
+              <p class="text-xs font-bold text-gray-400 uppercase tracking-widest">
+                {{ lang === 'es' ? 'Mi cuenta' : 'My account' }}
+              </p>
+            </div>
+
+            <div class="p-2 flex flex-col gap-1">
+              <!-- Logout -->
+              <button
+                id="user-logout-btn"
+                @click="handleLogout"
+                class="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-red-50 transition-colors group text-left"
+              >
+                <div class="w-9 h-9 rounded-xl bg-red-100 flex items-center justify-center flex-shrink-0 group-hover:bg-red-200 transition-colors">
+                  <LogOut class="w-5 h-5 text-red-500" stroke-width="2" />
+                </div>
+                <div>
+                  <p class="text-sm font-bold text-gray-800">
+                    {{ lang === 'es' ? 'Cerrar sesión' : 'Sign out' }}
+                  </p>
+                  <p class="text-xs text-gray-400">
+                    {{ lang === 'es' ? 'Salir de tu cuenta' : 'Sign out of your account' }}
+                  </p>
+                </div>
+              </button>
+            </div>
+          </div>
+        </Transition>
+      </div>
+
+      <!-- Settings Dropdown -->
       <div ref="settingsRef" class="relative">
         <button
           id="settings-toggle"
@@ -88,13 +183,11 @@ onBeforeUnmount(() => document.removeEventListener('click', handleOutsideClick))
           />
         </button>
 
-        <!-- Dropdown Panel -->
         <Transition name="dropdown">
           <div
             v-if="settingsOpen"
             class="absolute right-0 top-full mt-3 w-64 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden"
           >
-            <!-- Panel Header -->
             <div class="bg-ferremat-blue/5 border-b border-gray-100 px-4 py-3">
               <p class="text-xs font-bold text-gray-400 uppercase tracking-widest">
                 {{ lang === 'es' ? 'Ajustes' : 'Settings' }}
@@ -102,7 +195,6 @@ onBeforeUnmount(() => document.removeEventListener('click', handleOutsideClick))
             </div>
 
             <div class="p-2 flex flex-col gap-1">
-
               <!-- Language Toggle -->
               <button
                 id="settings-lang-toggle"
@@ -113,12 +205,8 @@ onBeforeUnmount(() => document.removeEventListener('click', handleOutsideClick))
                   <Languages class="w-5 h-5 text-ferremat-orange" stroke-width="2" />
                 </div>
                 <div class="flex-1">
-                  <p class="text-sm font-bold text-gray-800">
-                    {{ lang === 'es' ? 'Idioma' : 'Language' }}
-                  </p>
-                  <p class="text-xs text-gray-400">
-                    {{ lang === 'es' ? 'Cambiar a inglés' : 'Switch to Spanish' }}
-                  </p>
+                  <p class="text-sm font-bold text-gray-800">{{ lang === 'es' ? 'Idioma' : 'Language' }}</p>
+                  <p class="text-xs text-gray-400">{{ lang === 'es' ? 'Cambiar a inglés' : 'Switch to Spanish' }}</p>
                 </div>
                 <span class="text-xs font-bold px-2 py-0.5 rounded-full bg-ferremat-orange/10 text-ferremat-orange">
                   {{ lang.toUpperCase() }}
@@ -139,13 +227,11 @@ onBeforeUnmount(() => document.removeEventListener('click', handleOutsideClick))
                   />
                 </div>
                 <div class="flex-1">
-                  <p class="text-sm font-bold text-gray-800">
-                    {{ lang === 'es' ? 'Tema' : 'Theme' }}
-                  </p>
+                  <p class="text-sm font-bold text-gray-800">{{ lang === 'es' ? 'Tema' : 'Theme' }}</p>
                   <p class="text-xs text-gray-400">
                     {{ lang === 'es'
                       ? (theme === 'light' ? 'Cambiar a oscuro' : 'Cambiar a claro')
-                      : (theme === 'light' ? 'Switch to dark' : 'Switch to light') }}
+                      : (theme === 'light' ? 'Switch to dark'  : 'Switch to light') }}
                   </p>
                 </div>
                 <span class="text-xs font-bold px-2 py-0.5 rounded-full bg-ferremat-blue/10 text-ferremat-blue">
@@ -153,7 +239,6 @@ onBeforeUnmount(() => document.removeEventListener('click', handleOutsideClick))
                 </span>
               </button>
 
-              <!-- Divider -->
               <div class="my-1 border-t border-gray-100" />
 
               <!-- Policies Link -->
@@ -167,19 +252,15 @@ onBeforeUnmount(() => document.removeEventListener('click', handleOutsideClick))
                   <FileText class="w-5 h-5 text-gray-500" stroke-width="2" />
                 </div>
                 <div>
-                  <p class="text-sm font-bold text-gray-800">
-                    {{ lang === 'es' ? 'Políticas' : 'Policies' }}
-                  </p>
-                  <p class="text-xs text-gray-400">
-                    {{ lang === 'es' ? 'Privacidad, cookies y más' : 'Privacy, cookies & more' }}
-                  </p>
+                  <p class="text-sm font-bold text-gray-800">{{ lang === 'es' ? 'Políticas' : 'Policies' }}</p>
+                  <p class="text-xs text-gray-400">{{ lang === 'es' ? 'Privacidad, cookies y más' : 'Privacy, cookies & more' }}</p>
                 </div>
               </NuxtLink>
-
             </div>
           </div>
         </Transition>
       </div>
+
     </div>
   </header>
 </template>
@@ -193,5 +274,15 @@ onBeforeUnmount(() => document.removeEventListener('click', handleOutsideClick))
 .dropdown-leave-to {
   opacity: 0;
   transform: translateY(-8px) scale(0.97);
+}
+
+.badge-enter-active,
+.badge-leave-active {
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.badge-enter-from,
+.badge-leave-to {
+  opacity: 0;
+  transform: scale(0.5);
 }
 </style>

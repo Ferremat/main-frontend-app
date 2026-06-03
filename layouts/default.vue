@@ -1,7 +1,13 @@
 <script setup lang="ts">
 const { theme, initTheme } = useSettings();
+const { initAuth } = useAuth();
+const { initCart } = useCart();
 
-onMounted(() => initTheme());
+onMounted(() => {
+  initTheme();
+  initAuth();
+  initCart();
+});
 
 // Keep the <html> dark class in sync with the reactive theme state
 watch(theme, (val) => {
