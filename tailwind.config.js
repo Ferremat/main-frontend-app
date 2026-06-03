@@ -8,11 +8,12 @@ export default {
     "./app.vue",
     "./error.vue",
   ],
+  darkMode: 'class',
   theme: {
     extend: {
       colors: {
         'ferremat-orange': '#FF7F27', 
-        'ferremat-blue': '#3E3AFF',   
+        'ferremat-blue': '#4A6FA5',   
       }
     },
   },
