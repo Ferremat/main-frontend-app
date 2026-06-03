@@ -1,0 +1,37 @@
+// Composable centralizado para llamadas a la API de Ferremat
+
+export interface Category {
+  id: string
+  name: string
+}
+
+export interface Product {
+  id: string
+  name: string
+  description?: string
+  price: string | number
+  stock: number
+  imageUrl?: string | null
+  category?: Category
+  categoryId?: string
+}
+
+export const useApi = () => {
+  const config = useRuntimeConfig()
+  const baseUrl = config.public.apiUrl as string
+
+  const fetchProducts = async (): Promise<Product[]> => {
+    const data = await $fetch<Product[]>(`${baseUrl}products/list_products`)
+    return data
+  }
+
+  const fetchCategories = async (): Promise<Category[]> => {
+    const data = await $fetch<Category[]>(`${baseUrl}products/list_categories`)
+    return data
+  }
+
+  return {
+    fetchProducts,
+    fetchCategories,
+  }
+}

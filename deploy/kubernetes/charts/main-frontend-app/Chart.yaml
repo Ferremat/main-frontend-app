@@ -1,0 +1,6 @@
+apiVersion: v2
+name: main-frontend-app
+description: Ferremat Main Frontend App (Nuxt.js)
+type: application
+version: 0.1.0
+appVersion: "latest"
