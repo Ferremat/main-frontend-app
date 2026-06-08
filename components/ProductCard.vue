@@ -2,8 +2,11 @@
 import { ShoppingCart, Eye } from 'lucide-vue-next';
 
 const { lang, theme } = useSettings();
+const { addItem } = useCart();
+const router = useRouter();
 
-defineProps<{
+const props = defineProps<{
+  id: string;
   image: string;
   title: string;
   brand: string;
@@ -18,6 +21,21 @@ const t = computed(() => ({
   viewDetails: lang.value === 'es' ? 'Ver Detalles' : 'View Details',
   addToCart:   lang.value === 'es' ? 'Agregar'      : 'Add',
 }));
+
+function goToDetail() {
+  router.push(`/productos/${props.id}`);
+}
+
+function handleAddToCart() {
+  addItem({
+    id:       props.id,
+    name:     props.title,
+    price:    props.price,
+    quantity: 1,
+    image:    props.image,
+    category: props.category,
+  });
+}
 </script>
 
 <template>
@@ -53,11 +71,17 @@ const t = computed(() => ({
         ${{ price.toLocaleString('en-US', { minimumFractionDigits: 2 }) }}
       </p>
       <div class="flex gap-2 mt-1">
-        <button class="flex-1 flex items-center justify-center gap-1.5 border-2 border-ferremat-blue text-ferremat-blue text-sm font-semibold py-2 rounded-lg hover:bg-ferremat-blue hover:text-white transition-colors duration-200">
+        <button
+          @click="goToDetail"
+          class="flex-1 flex items-center justify-center gap-1.5 border-2 border-ferremat-blue text-ferremat-blue text-sm font-semibold py-2 rounded-lg hover:bg-ferremat-blue hover:text-white transition-colors duration-200"
+        >
           <Eye class="w-4 h-4" />
           {{ t.viewDetails }}
         </button>
-        <button class="flex-1 flex items-center justify-center gap-1.5 bg-ferremat-orange text-white text-sm font-semibold py-2 rounded-lg hover:bg-orange-500 transition-colors duration-200">
+        <button
+          @click="handleAddToCart"
+          class="flex-1 flex items-center justify-center gap-1.5 bg-ferremat-orange text-white text-sm font-semibold py-2 rounded-lg hover:bg-orange-500 transition-colors duration-200"
+        >
           <ShoppingCart class="w-4 h-4" />
           {{ t.addToCart }}
         </button>

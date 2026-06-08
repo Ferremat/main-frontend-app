@@ -25,6 +25,11 @@ export const useApi = () => {
     return data
   }
 
+  const fetchProductById = async (id: string): Promise<Product> => {
+    const data = await $fetch<Product>(`${baseUrl}products/${id}`)
+    return data
+  }
+
   const fetchCategories = async (): Promise<Category[]> => {
     const data = await $fetch<Category[]>(`${baseUrl}products/list_categories`)
     return data
@@ -32,6 +37,7 @@ export const useApi = () => {
 
   return {
     fetchProducts,
+    fetchProductById,
     fetchCategories,
   }
 }
