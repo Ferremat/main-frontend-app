@@ -31,6 +31,7 @@ watch(lang, (l) => {
 
 const mappedProducts = computed(() =>
   products.value.map((p) => ({
+    id:          p.id,
     title:       p.name,
     brand:       p.category?.name ?? '',
     image:       p.imageUrl ?? 'https://placehold.co/400x300?text=Sin+Imagen',
@@ -93,7 +94,8 @@ const productsFound = computed(() =>
     <div v-else class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
       <ProductCard
         v-for="(product, index) in mappedProducts"
-        :key="index"
+        :key="product.id"
+        :id="product.id"
         :title="product.title"
         :brand="product.brand"
         :image="product.image"
