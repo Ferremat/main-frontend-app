@@ -111,7 +111,7 @@ spec:
             steps {
                 container('tools') {
                     withCredentials([usernamePassword(
-                        credentialsId: 'github-credentials',
+                        credentialsId: 'github-creds',
                         usernameVariable: 'GIT_USER',
                         passwordVariable: 'GIT_TOKEN'
                     )]) {
