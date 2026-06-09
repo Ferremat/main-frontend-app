@@ -25,6 +25,17 @@ export const useApi = () => {
     return data
   }
 
+  const fetchProductById = async (id: string): Promise<Product> => {
+    if (!id || id === 'undefined') {
+      throw new Error('ID de producto inválido');
+    }
+    const data = await $fetch<Product>(`${baseUrl}products/${id}`)
+    if (!data || typeof data !== 'object') {
+      throw new Error('Respuesta de servidor inválida');
+    }
+    return data
+  }
+
   const fetchCategories = async (): Promise<Category[]> => {
     const data = await $fetch<Category[]>(`${baseUrl}products/list_categories`)
     return data
@@ -32,6 +43,7 @@ export const useApi = () => {
 
   return {
     fetchProducts,
+    fetchProductById,
     fetchCategories,
   }
 }
