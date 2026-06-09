@@ -2,7 +2,7 @@
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import {
   Search, ShoppingBag, User, Settings, Hammer,
-  Languages, Sun, Moon, FileText, LogOut, ChevronDown,
+  Languages, Sun, Moon, FileText, LogOut, ChevronDown, Menu, X,
 } from 'lucide-vue-next';
 
 const { lang, theme, toggleLang, toggleTheme } = useSettings();
@@ -15,6 +15,11 @@ const navLinks = [
   { label: 'Conócenos',   to: '/conocenos' },
   { label: 'Contáctanos', to: '/contactanos' },
 ];
+
+// ── Mobile menu ─────────────────────────────────────────────────────────────
+const mobileMenuOpen = ref(false);
+function toggleMobileMenu() { mobileMenuOpen.value = !mobileMenuOpen.value; }
+function closeMobileMenu() { mobileMenuOpen.value = false; }
 
 // ── Settings dropdown ───────────────────────────────────────────────────────
 const settingsOpen = ref(false);
@@ -49,13 +54,13 @@ onBeforeUnmount(() => document.removeEventListener('click', handleOutsideClick))
   <header class="bg-ferremat-blue px-6 py-4 flex items-center justify-between sticky top-0 z-50 shadow-md">
 
     <!-- Logo -->
-    <NuxtLink to="/" class="flex items-center">
+    <NuxtLink to="/" class="flex items-center" @click="closeMobileMenu">
       <div class="bg-ferremat-orange text-white p-2.5 rounded-md flex items-center justify-center">
         <Hammer class="w-8 h-8" stroke-width="2.5" />
       </div>
     </NuxtLink>
 
-    <!-- Navigation Links -->
+    <!-- Navigation Links — Desktop only -->
     <nav class="hidden lg:flex items-center gap-8 ml-8">
       <NuxtLink
         v-for="link in navLinks"
@@ -70,7 +75,7 @@ onBeforeUnmount(() => document.removeEventListener('click', handleOutsideClick))
     </nav>
 
     <!-- Action Icons -->
-    <div class="flex items-center gap-6 text-white">
+    <div class="flex items-center gap-4 lg:gap-6 text-white">
 
       <!-- Search -->
       <button
@@ -167,8 +172,8 @@ onBeforeUnmount(() => document.removeEventListener('click', handleOutsideClick))
         </Transition>
       </div>
 
-      <!-- Settings Dropdown -->
-      <div ref="settingsRef" class="relative">
+      <!-- Settings Dropdown — Hidden on mobile -->
+      <div ref="settingsRef" class="relative hidden lg:block">
         <button
           id="settings-toggle"
           @click.stop="toggleSettings"
@@ -261,8 +266,75 @@ onBeforeUnmount(() => document.removeEventListener('click', handleOutsideClick))
         </Transition>
       </div>
 
+      <!-- Mobile menu toggle — Visible on mobile only -->
+      <button
+        @click.stop="toggleMobileMenu"
+        class="lg:hidden hover:text-white/80 transition-colors"
+        :aria-expanded="mobileMenuOpen"
+        :aria-label="lang === 'es' ? 'Menú' : 'Menu'"
+      >
+        <Menu v-if="!mobileMenuOpen" class="w-6 h-6" stroke-width="2" />
+        <X v-else class="w-6 h-6" stroke-width="2" />
+      </button>
+
     </div>
   </header>
+
+  <!-- Mobile Navigation Menu -->
+  <Transition
+    enter-active-class="transition-all duration-200"
+    leave-active-class="transition-all duration-200"
+    enter-from-class="opacity-0 -translate-y-2"
+    leave-to-class="opacity-0 -translate-y-2"
+  >
+    <nav
+      v-if="mobileMenuOpen"
+      class="lg:hidden bg-ferremat-blue/95 backdrop-blur-sm px-6 py-4 flex flex-col gap-2 border-t border-white/10"
+    >
+      <NuxtLink
+        v-for="link in navLinks"
+        :key="link.label"
+        :to="link.to"
+        @click="closeMobileMenu"
+        class="text-white font-semibold py-3 hover:text-ferremat-orange transition-colors"
+        active-class="text-ferremat-orange"
+        exact-active-class="text-ferremat-orange"
+      >
+        {{ link.label }}
+      </NuxtLink>
+
+      <!-- Mobile Settings & Policies -->
+      <div class="border-t border-white/10 mt-2 pt-2 flex flex-col gap-2">
+        <button
+          @click="() => { toggleLang(); closeMobileMenu(); }"
+          class="text-white font-semibold py-3 hover:text-ferremat-orange transition-colors text-left flex items-center justify-between"
+        >
+          <span>{{ lang === 'es' ? 'Idioma' : 'Language' }}</span>
+          <span class="text-xs font-bold px-2 py-0.5 rounded-full bg-ferremat-orange/20 text-ferremat-orange">
+            {{ lang.toUpperCase() }}
+          </span>
+        </button>
+
+        <button
+          @click="() => { toggleTheme(); closeMobileMenu(); }"
+          class="text-white font-semibold py-3 hover:text-ferremat-orange transition-colors text-left flex items-center justify-between"
+        >
+          <span>{{ lang === 'es' ? 'Tema' : 'Theme' }}</span>
+          <span class="text-xs font-bold px-2 py-0.5 rounded-full bg-ferremat-blue/20 text-blue-100">
+            {{ theme === 'light' ? (lang === 'es' ? 'Claro' : 'Light') : (lang === 'es' ? 'Oscuro' : 'Dark') }}
+          </span>
+        </button>
+
+        <NuxtLink
+          to="/politicas"
+          @click="closeMobileMenu"
+          class="text-white font-semibold py-3 hover:text-ferremat-orange transition-colors"
+        >
+          {{ lang === 'es' ? 'Políticas' : 'Policies' }}
+        </NuxtLink>
+      </div>
+    </nav>
+  </Transition>
 </template>
 
 <style scoped>
