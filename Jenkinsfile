@@ -119,6 +119,11 @@ spec:
                         git config --global user.email "jenkins@ferremat.es"
                         git config --global user.name "Jenkins CI"
 
+                        REPO_NO_SCHEME=\$(echo "${GIT_REPO_URL}" | sed 's|https://||')
+
+                        git fetch https://\${GIT_USER}:\${GIT_TOKEN}@\${REPO_NO_SCHEME} main
+                        git checkout -B main FETCH_HEAD
+
                         echo "Updating image tag to ${IMAGE_TAG} in ${VALUES_FILE}..."
                         sed -i 's|^    tag:.*|    tag: ${IMAGE_TAG}|' ${VALUES_FILE}
 
@@ -128,7 +133,6 @@ spec:
                         git add ${VALUES_FILE}
                         git diff --cached --quiet || git commit -m "ci: update ${APP_NAME} image to ${IMAGE_TAG} [skip ci]"
 
-                        REPO_NO_SCHEME=\$(echo "${GIT_REPO_URL}" | sed 's|https://||')
                         git push https://\${GIT_USER}:\${GIT_TOKEN}@\${REPO_NO_SCHEME} HEAD:main
 
                         echo "values.yaml pushed — ArgoCD will sync automatically"
