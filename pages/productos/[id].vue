@@ -30,11 +30,20 @@ const added    = ref(false); // feedback tras añadir al carrito
 // ── Fetch ────────────────────────────────────────────────────────────────────
 onMounted(async () => {
   try {
-    product.value = await fetchProductById(route.params.id as string);
-  } catch {
+    const id = route.params.id as string;
+    if (!id) {
+      throw new Error('Product ID not provided');
+    }
+    const fetchedProduct = await fetchProductById(id);
+    if (!fetchedProduct) {
+      throw new Error('Product not found');
+    }
+    product.value = fetchedProduct;
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : '';
     error.value = lang.value === 'es'
-      ? 'No se pudo cargar el producto.'
-      : 'Product could not be loaded.';
+      ? (errorMessage.includes('not found') ? 'Producto no encontrado.' : 'No se pudo cargar el producto.')
+      : (errorMessage.includes('not found') ? 'Product not found.' : 'Product could not be loaded.');
   } finally {
     loading.value = false;
   }

@@ -26,7 +26,13 @@ export const useApi = () => {
   }
 
   const fetchProductById = async (id: string): Promise<Product> => {
+    if (!id || id === 'undefined') {
+      throw new Error('ID de producto inválido');
+    }
     const data = await $fetch<Product>(`${baseUrl}products/${id}`)
+    if (!data || typeof data !== 'object') {
+      throw new Error('Respuesta de servidor inválida');
+    }
     return data
   }
 
