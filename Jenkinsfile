@@ -88,7 +88,7 @@ spec:
             steps {
                 container('kaniko') {
                     script {
-                        env.IMAGE_TAG = "${env.BUILD_NUMBER}-${sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()}"
+                        env.IMAGE_TAG = "${env.BUILD_NUMBER}-${env.GIT_COMMIT.take(7)}"
                     }
                     sh """
                     set -e
