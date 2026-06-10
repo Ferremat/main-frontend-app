@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { X, CreditCard, Lock, Loader } from 'lucide-vue-next';
 
 const { lang, theme } = useSettings();
@@ -16,6 +16,49 @@ const props = defineProps<Props>();
 const currentStep = ref<'summary' | 'address' | 'payment' | 'confirmation'>('summary');
 const isProcessing = ref(false);
 
+// Postal codes database - Mapa de ciudades a códigos postales españoles
+const postalCodesMap: Record<string, string> = {
+  'madrid': '28001',
+  'barcelona': '08002',
+  'valencia': '46001',
+  'sevilla': '41001',
+  'bilbao': '48001',
+  'alicante': '03001',
+  'murcia': '30001',
+  'córdoba': '14001',
+  'málaga': '29001',
+  'palma': '07001',
+  'las palmas': '35001',
+  'almería': '04001',
+  'oviedo': '33001',
+  'valladolid': '47001',
+  'zaragoza': '50001',
+  'gijón': '33201',
+  'burgos': '09001',
+  'salamanca': '37001',
+  'toledo': '45001',
+  'león': '24001',
+  'albacete': '02001',
+  'cáceres': '10001',
+  'cuenca': '16001',
+  'guadalajara': '19001',
+  'jaén': '23001',
+  'huelva': '21001',
+  'huesca': '22001',
+  'teruel': '44001',
+  'soria': '42001',
+  'ávila': '05001',
+  'badajoz': '06001',
+  'palencia': '34001',
+  'zamora': '49001',
+  'segovia': '40001',
+  'logroño': '26001',
+  'ourense': '32001',
+  'pontevedra': '36001',
+  'a coruña': '15001',
+  'lugo': '27001',
+};
+
 // Form data
 const formData = ref({
   firstName: '',
@@ -29,6 +72,14 @@ const formData = ref({
   cardHolder: '',
   expiryDate: '',
   cvv: '',
+});
+
+// Autocomplete postal code when city changes
+watch(() => formData.value.city, (newCity) => {
+  const cityLower = newCity.toLowerCase().trim();
+  if (cityLower && postalCodesMap[cityLower]) {
+    formData.value.postalCode = postalCodesMap[cityLower];
+  }
 });
 
 const t = computed(() => ({
@@ -201,15 +252,20 @@ function handleComplete() {
               <input
                 v-model="formData.city"
                 type="text"
+                :placeholder="lang === 'es' ? 'ej: Madrid' : 'e.g: Madrid'"
                 :class="['w-full px-4 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-ferremat-orange/40 transition', inputClass]"
               />
+              <p class="text-xs mt-1" :class="theme === 'dark' ? 'text-gray-500' : 'text-gray-500'">
+                {{ lang === 'es' ? '💡 Se rellenará automáticamente' : '💡 Auto-fills postal code' }}
+              </p>
             </div>
             <div>
               <label :class="['block text-sm font-semibold mb-2', labelClass]">{{ t.postalCode }}</label>
               <input
                 v-model="formData.postalCode"
                 type="text"
-                :class="['w-full px-4 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-ferremat-orange/40 transition', inputClass]"
+                readonly
+                :class="['w-full px-4 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-ferremat-orange/40 transition', inputClass, 'cursor-auto opacity-90']"
               />
             </div>
           </div>

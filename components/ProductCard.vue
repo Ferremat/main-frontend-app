@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { ShoppingCart, Eye } from 'lucide-vue-next';
+import { ShoppingCart, Eye, LogIn } from 'lucide-vue-next';
 
 const { lang, theme } = useSettings();
 const { addItem } = useCart();
+const { isLoggedIn } = useAuth();
 const router = useRouter();
 
 const props = defineProps<{
@@ -20,6 +21,7 @@ const t = computed(() => ({
   available:   lang.value === 'es' ? 'disponibles' : 'available',
   viewDetails: lang.value === 'es' ? 'Ver Detalles' : 'View Details',
   addToCart:   lang.value === 'es' ? 'Agregar'      : 'Add',
+  loginRequired: lang.value === 'es' ? 'Inicia sesión para comprar' : 'Sign in to shop',
 }));
 
 function goToDetail() {
@@ -27,6 +29,11 @@ function goToDetail() {
 }
 
 function handleAddToCart() {
+  if (!isLoggedIn.value) {
+    router.push('/login');
+    return;
+  }
+
   addItem({
     id:       props.id,
     name:     props.title,
@@ -80,10 +87,14 @@ function handleAddToCart() {
         </button>
         <button
           @click="handleAddToCart"
-          class="flex-1 flex items-center justify-center gap-1.5 bg-ferremat-orange dark:bg-orange-600 text-white text-sm font-semibold py-2 rounded-lg hover:bg-orange-500 dark:hover:bg-orange-500 transition-colors duration-200"
+          :title="!isLoggedIn ? t.loginRequired : ''"
+          class="flex-1 flex items-center justify-center gap-1.5 text-white text-sm font-semibold py-2 rounded-lg transition-colors duration-200"
+          :class="isLoggedIn
+            ? 'bg-ferremat-orange dark:bg-orange-600 hover:bg-orange-500 dark:hover:bg-orange-500'
+            : 'bg-gray-400 dark:bg-gray-600 cursor-not-allowed opacity-75 hover:bg-gray-400 dark:hover:bg-gray-600'"
         >
-          <ShoppingCart class="w-4 h-4" />
-          {{ t.addToCart }}
+          <component :is="isLoggedIn ? ShoppingCart : LogIn" class="w-4 h-4" />
+          {{ isLoggedIn ? t.addToCart : t.loginRequired }}
         </button>
       </div>
     </div>
