@@ -1,9 +1,17 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { ShoppingCart, Trash2, Plus, Minus, ArrowLeft, ShoppingBag, Tag, Truck, Shield } from 'lucide-vue-next';
 
 const { lang, theme } = useSettings();
 const { items, totalItems, totalPrice, removeItem, updateQuantity, clearCart } = useCart();
+
+const showPaymentGateway = ref(false);
+function openPaymentGateway() { showPaymentGateway.value = true; }
+function closePaymentGateway() { showPaymentGateway.value = false; }
+function handlePaymentSuccess() {
+  clearCart();
+  showPaymentGateway.value = false;
+}
 
 const IVA_RATE = 0.21;
 
@@ -15,13 +23,13 @@ const total     = computed(() => subtotal.value + iva.value + shipping.value);
 const fmtPrice = (n: number) =>
   new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(n);
 
-// Theme helpers
-const pageBg   = computed(() => theme.value === 'dark' ? 'bg-slate-900' : 'bg-gray-50');
-const cardBg   = computed(() => theme.value === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-gray-100');
+// Theme helpers — softer dark mode
+const pageBg   = computed(() => theme.value === 'dark' ? 'bg-slate-950' : 'bg-gray-50');
+const cardBg   = computed(() => theme.value === 'dark' ? 'bg-slate-800/60 border-slate-700/50' : 'bg-white border-gray-100');
 const headTxt  = computed(() => theme.value === 'dark' ? 'text-gray-100' : 'text-gray-800');
-const subTxt   = computed(() => theme.value === 'dark' ? 'text-slate-400' : 'text-gray-500');
-const divider  = computed(() => theme.value === 'dark' ? 'border-slate-700' : 'border-gray-100');
-const inputBg  = computed(() => theme.value === 'dark' ? 'bg-slate-700 border-slate-600 text-gray-100' : 'bg-gray-50 border-gray-200 text-gray-700');
+const subTxt   = computed(() => theme.value === 'dark' ? 'text-gray-500' : 'text-gray-500');
+const divider  = computed(() => theme.value === 'dark' ? 'border-slate-700/50' : 'border-gray-100');
+const inputBg  = computed(() => theme.value === 'dark' ? 'bg-slate-700/40 border-slate-600/50 text-gray-100' : 'bg-gray-50 border-gray-200 text-gray-700');
 
 const t = computed(() => ({
   title:       lang.value === 'es' ? 'Mi carrito'           : 'My cart',
@@ -215,6 +223,7 @@ useHead({
 
             <!-- CTA -->
             <button
+              @click="openPaymentGateway"
               class="mt-5 w-full bg-ferremat-orange hover:bg-ferremat-orange/90 active:scale-95 text-white font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 transition-all duration-200 shadow-md shadow-ferremat-orange/20"
             >
               <ShoppingBag class="w-5 h-5" stroke-width="2" />
@@ -252,6 +261,15 @@ useHead({
 
       </div>
     </div>
+
+    <!-- Payment Gateway Modal -->
+    <Teleport v-if="showPaymentGateway" to="body">
+      <PaymentGateway
+        :total="total"
+        @close="closePaymentGateway"
+        @success="handlePaymentSuccess"
+      />
+    </Teleport>
   </div>
 </template>
 
