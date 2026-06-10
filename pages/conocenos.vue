@@ -32,13 +32,12 @@ const sectionBg  = computed(() => theme.value === 'dark' ? 'bg-slate-800/60' : '
 const heading    = computed(() => theme.value === 'dark' ? 'text-gray-100' : 'text-gray-800');
 const subtext    = computed(() => theme.value === 'dark' ? 'text-slate-400' : 'text-gray-600');
 
-useHead({
-  title: computed(() => lang.value === 'es' ? 'Conócenos | Ferremat' : 'About Us | Ferremat'),
-  meta: [{ name: 'description', content: computed(() =>
-    lang.value === 'es'
-      ? 'Conoce la historia, valores y equipo detrás de Ferretería Ferremat.'
-      : 'Learn about the history, values and team behind Ferretería Ferremat.'
-  )}],
+useSeo({
+  title: 'Conócenos - Ferremat | Ferretería con Más de 20 Años de Experiencia',
+  description: 'Descubre la historia de Ferremat, una ferretería con más de 20 años de experiencia. Conoce nuestro equipo de expertos dedicados a la calidad y el servicio personalizado.',
+  url: '/conocenos',
+  keywords: 'ferremat, historia, ferretería, equipo profesional, calidad, experiencia',
+  type: 'website',
 });
 </script>
 

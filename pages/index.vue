@@ -1,6 +1,11 @@
 <script setup lang="ts">
-// Components are auto-imported in Nuxt, but explicitly importing them isn't harmful.
-// Nuxt's auto-import feature handles this usually.
+useSeo({
+  title: 'Ferremat - Tienda Online de Herramientas y Materiales de Construcción',
+  description: 'Descubre Ferremat, tu ferretería online con las mejores herramientas, materiales de construcción y productos profesionales. Envío gratis a partir de 50€. ¡Compra ahora!',
+  url: '/',
+  keywords: 'ferretería online, herramientas, materiales construcción, comprar herramientas, bricolaje',
+  type: 'website',
+});
 </script>
 
 <template>

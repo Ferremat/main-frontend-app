@@ -58,13 +58,12 @@ const inputCls = computed(() => theme.value === 'dark'
 const dividerCls = computed(() => theme.value === 'dark' ? 'bg-slate-600' : 'bg-gray-100');
 const dividerTxt = computed(() => theme.value === 'dark' ? 'text-slate-400' : 'text-gray-400');
 
-useHead({
-  title: computed(() => lang.value === 'es' ? 'Iniciar Sesión | Ferremat' : 'Sign In | Ferremat'),
-  meta: [{ name: 'description', content: computed(() =>
-    lang.value === 'es'
-      ? 'Accede a tu cuenta en Ferretería Ferremat.'
-      : 'Sign in to your Ferretería Ferremat account.'
-  )}],
+useSeo({
+  title: 'Iniciar Sesión - Ferremat | Accede a tu Cuenta',
+  description: 'Accede a tu cuenta en Ferremat para ver tus pedidos, facturas y gestionar tu perfil. Login seguro en nuestra plataforma.',
+  url: '/login',
+  keywords: 'login, iniciar sesión, cuenta ferremat, acceso',
+  type: 'website',
 });
 </script>
 
