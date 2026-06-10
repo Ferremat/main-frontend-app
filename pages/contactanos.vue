@@ -48,13 +48,12 @@ const inputCls  = computed(() => theme.value === 'dark'
   ? 'border-slate-600 bg-slate-700 text-gray-100 placeholder-slate-400'
   : 'border-gray-200 bg-white text-gray-700 placeholder-gray-400');
 
-useHead({
-  title: computed(() => lang.value === 'es' ? 'Contáctanos | Ferremat' : 'Contact Us | Ferremat'),
-  meta: [{ name: 'description', content: computed(() =>
-    lang.value === 'es'
-      ? 'Ponte en contacto con Ferretería Ferremat.'
-      : 'Get in touch with Ferretería Ferremat.'
-  )}],
+useSeo({
+  title: 'Contáctanos - Ferremat | Ferretería Online',
+  description: 'Ponte en contacto con Ferremat. Estamos aquí para ayudarte. Llama, envía un email o visita nuestras oficinas. Respuesta rápida garantizada.',
+  url: '/contactanos',
+  keywords: 'contacto, ferremat, ferretería, teléfono, email, dirección',
+  type: 'website',
 });
 </script>
 

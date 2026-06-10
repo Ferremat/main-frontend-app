@@ -200,18 +200,12 @@ const activeId = ref('privacidad');
 const activePolicy = computed(() => policies.find(p => p.id === activeId.value)!);
 const activeContent = computed(() => (lang.value === 'es' ? activePolicy.value.es : activePolicy.value.en));
 
-useHead({
-  title: computed(() => lang.value === 'es' ? 'Políticas | Ferremat' : 'Policies | Ferremat'),
-  meta: [
-    {
-      name: 'description',
-      content: computed(() =>
-        lang.value === 'es'
-          ? 'Consulta las políticas de privacidad, cookies, aviso legal y condiciones de compra de Ferretería Ferremat.'
-          : 'Read the privacy, cookie, legal, and purchase policies of Ferretería Ferremat.'
-      ),
-    },
-  ],
+useSeo({
+  title: 'Políticas - Ferremat | Privacidad, Cookies y Condiciones',
+  description: 'Lee nuestras políticas de privacidad, uso de cookies, aviso legal y condiciones de compra. Protección de datos garantizada en Ferremat.',
+  url: '/politicas',
+  keywords: 'políticas, privacidad, cookies, condiciones, aviso legal',
+  type: 'website',
 });
 </script>
 

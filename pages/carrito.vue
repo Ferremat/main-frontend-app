@@ -50,9 +50,12 @@ const t = computed(() => ({
   secure:      lang.value === 'es' ? 'Pago 100% seguro'      : '100% secure payment',
 }));
 
-useHead({
-  title: computed(() => lang.value === 'es' ? 'Carrito | Ferremat' : 'Cart | Ferremat'),
-  meta: [{ name: 'description', content: 'Tu carrito de la compra en Ferretería Ferremat.' }],
+useSeo({
+  title: 'Mi Carrito - Ferremat | Compra Online Segura',
+  description: 'Revisa tu carrito de compra en Ferremat. Compra segura con envío gratis a partir de 50€. Pago rápido y sencillo.',
+  url: '/carrito',
+  keywords: 'carrito, compra online, productos, ferremat',
+  type: 'website',
 });
 </script>
 
