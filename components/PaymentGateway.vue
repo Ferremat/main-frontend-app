@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
-import { X, CreditCard, Lock, Loader } from 'lucide-vue-next';
+import { X, CreditCard, Lock, Loader, MapPin } from 'lucide-vue-next';
 
 const { lang, theme } = useSettings();
 const emit = defineEmits<{
@@ -13,51 +13,60 @@ interface Props {
 }
 const props = defineProps<Props>();
 
+interface LocationSuggestion {
+  name: string;
+  postcode: string;
+  display_name: string;
+  lat: string;
+  lon: string;
+}
+
 const currentStep = ref<'summary' | 'address' | 'payment' | 'confirmation'>('summary');
 const isProcessing = ref(false);
+const locationSuggestions = ref<LocationSuggestion[]>([]);
+const showSuggestions = ref(false);
+const searchingLocation = ref(false);
+let searchTimeout: ReturnType<typeof setTimeout>;
 
-// Postal codes database - Mapa de ciudades a códigos postales españoles
-const postalCodesMap: Record<string, string> = {
-  'madrid': '28001',
-  'barcelona': '08002',
-  'valencia': '46001',
-  'sevilla': '41001',
-  'bilbao': '48001',
-  'alicante': '03001',
-  'murcia': '30001',
-  'córdoba': '14001',
-  'málaga': '29001',
-  'palma': '07001',
-  'las palmas': '35001',
-  'almería': '04001',
-  'oviedo': '33001',
-  'valladolid': '47001',
-  'zaragoza': '50001',
-  'gijón': '33201',
-  'burgos': '09001',
-  'salamanca': '37001',
-  'toledo': '45001',
-  'león': '24001',
-  'albacete': '02001',
-  'cáceres': '10001',
-  'cuenca': '16001',
-  'guadalajara': '19001',
-  'jaén': '23001',
-  'huelva': '21001',
-  'huesca': '22001',
-  'teruel': '44001',
-  'soria': '42001',
-  'ávila': '05001',
-  'badajoz': '06001',
-  'palencia': '34001',
-  'zamora': '49001',
-  'segovia': '40001',
-  'logroño': '26001',
-  'ourense': '32001',
-  'pontevedra': '36001',
-  'a coruña': '15001',
-  'lugo': '27001',
-};
+// Nominatim API call function
+async function searchLocations(query: string): Promise<void> {
+  if (query.length < 2) {
+    locationSuggestions.value = [];
+    return;
+  }
+
+  searchingLocation.value = true;
+  try {
+    const response = await fetch(
+      `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&countrycodes=es&format=json&addressdetails=1&limit=5`
+    );
+    const data = await response.json();
+
+    locationSuggestions.value = data
+      .filter((item: any) => item.address?.postcode)
+      .map((item: any) => ({
+        name: item.address?.city || item.address?.town || item.address?.village || item.name,
+        postcode: item.address?.postcode,
+        display_name: item.display_name,
+        lat: item.lat,
+        lon: item.lon,
+      }));
+
+    showSuggestions.value = locationSuggestions.value.length > 0;
+  } catch (error) {
+    console.error('Error searching locations:', error);
+    locationSuggestions.value = [];
+  } finally {
+    searchingLocation.value = false;
+  }
+}
+
+function selectLocation(suggestion: LocationSuggestion): void {
+  formData.value.city = suggestion.name;
+  formData.value.postalCode = suggestion.postcode;
+  locationSuggestions.value = [];
+  showSuggestions.value = false;
+}
 
 // Form data
 const formData = ref({
@@ -74,12 +83,24 @@ const formData = ref({
   cvv: '',
 });
 
-// Autocomplete postal code when city changes
+// Search locations with debounce when city changes
 watch(() => formData.value.city, (newCity) => {
-  const cityLower = newCity.toLowerCase().trim();
-  if (cityLower && postalCodesMap[cityLower]) {
-    formData.value.postalCode = postalCodesMap[cityLower];
+  // Clear previous timeout
+  if (searchTimeout) {
+    clearTimeout(searchTimeout);
   }
+
+  // Reset suggestions if empty
+  if (!newCity.trim()) {
+    locationSuggestions.value = [];
+    showSuggestions.value = false;
+    return;
+  }
+
+  // Debounce search to avoid too many API calls
+  searchTimeout = setTimeout(() => {
+    searchLocations(newCity);
+  }, 300);
 });
 
 const t = computed(() => ({
@@ -94,7 +115,7 @@ const t = computed(() => ({
   email:           lang.value === 'es' ? 'Email'                        : 'Email',
   phone:           lang.value === 'es' ? 'Teléfono'                     : 'Phone',
   address:         lang.value === 'es' ? 'Dirección'                    : 'Address',
-  city:            lang.value === 'es' ? 'Ciudad'                       : 'City',
+  city:            lang.value === 'es' ? 'Ciudad o Pueblo'              : 'City or Town',
   postalCode:      lang.value === 'es' ? 'Código postal'                : 'Postal code',
   cardNumber:      lang.value === 'es' ? 'Número de tarjeta'            : 'Card number',
   cardHolder:      lang.value === 'es' ? 'Titular de la tarjeta'        : 'Card holder',
@@ -247,16 +268,54 @@ function handleComplete() {
           </div>
 
           <div class="grid grid-cols-2 gap-4">
-            <div>
+            <div class="relative">
               <label :class="['block text-sm font-semibold mb-2', labelClass]">{{ t.city }}</label>
-              <input
-                v-model="formData.city"
-                type="text"
-                :placeholder="lang === 'es' ? 'ej: Madrid' : 'e.g: Madrid'"
-                :class="['w-full px-4 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-ferremat-orange/40 transition', inputClass]"
-              />
+              <div class="relative">
+                <input
+                  v-model="formData.city"
+                  type="text"
+                  :placeholder="lang === 'es' ? 'ej: Madrid, Barcelona...' : 'e.g: Madrid, Barcelona...'"
+                  @focus="showSuggestions = true"
+                  :class="['w-full px-4 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-ferremat-orange/40 transition', inputClass]"
+                />
+
+                <!-- Loading indicator -->
+                <div v-if="searchingLocation" class="absolute right-3 top-1/2 transform -translate-y-1/2">
+                  <div class="w-4 h-4 border-2 border-ferremat-orange/30 border-t-ferremat-orange rounded-full animate-spin"></div>
+                </div>
+              </div>
+
+              <!-- Suggestions dropdown -->
+              <Transition
+                enter-active-class="transition-all duration-150"
+                leave-active-class="transition-all duration-150"
+                enter-from-class="opacity-0 -translate-y-2"
+                leave-to-class="opacity-0 -translate-y-2"
+              >
+                <div
+                  v-if="showSuggestions && locationSuggestions.length > 0"
+                  class="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-slate-800 border dark:border-slate-700 rounded-lg shadow-lg z-10"
+                  :class="bgClass"
+                >
+                  <button
+                    v-for="suggestion in locationSuggestions"
+                    :key="`${suggestion.name}-${suggestion.postcode}`"
+                    @click.prevent="selectLocation(suggestion)"
+                    class="w-full flex items-start gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors text-left border-b dark:border-slate-700 last:border-b-0"
+                  >
+                    <MapPin class="w-4 h-4 text-ferremat-orange flex-shrink-0 mt-0.5" stroke-width="2" />
+                    <div class="flex-1 min-w-0">
+                      <p class="text-sm font-semibold truncate" :class="textClass">{{ suggestion.name }}</p>
+                      <p class="text-xs" :class="theme === 'dark' ? 'text-gray-500' : 'text-gray-500'">
+                        📍 {{ suggestion.postcode }}
+                      </p>
+                    </div>
+                  </button>
+                </div>
+              </Transition>
+
               <p class="text-xs mt-1" :class="theme === 'dark' ? 'text-gray-500' : 'text-gray-500'">
-                {{ lang === 'es' ? '💡 Se rellenará automáticamente' : '💡 Auto-fills postal code' }}
+                {{ lang === 'es' ? '💡 Busca una ciudad o pueblo - el código se completa automáticamente' : '💡 Search a city or town - code auto-fills' }}
               </p>
             </div>
             <div>
@@ -264,8 +323,7 @@ function handleComplete() {
               <input
                 v-model="formData.postalCode"
                 type="text"
-                readonly
-                :class="['w-full px-4 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-ferremat-orange/40 transition', inputClass, 'cursor-auto opacity-90']"
+                :class="['w-full px-4 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-ferremat-orange/40 transition', inputClass]"
               />
             </div>
           </div>
