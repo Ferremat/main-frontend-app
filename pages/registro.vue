@@ -27,11 +27,34 @@ async function handleRegister() {
   }
 
   loading.value = true;
-  await new Promise((r) => setTimeout(r, 1200));
-  loading.value = false;
 
-  login({ name: form.value.fullName, email: form.value.email });
-  router.push('/');
+  try {
+    const apiUrl = useRuntimeConfig().public.apiUrl || 'http://localhost:3001';
+    const response = await fetch(`${apiUrl}/users/create_user`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: form.value.email,
+        password: form.value.password,
+        name: form.value.fullName,
+        username: form.value.email.split('@')[0],
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      error.value = errorData.message || (lang.value === 'es' ? 'Error al crear cuenta' : 'Error creating account');
+      loading.value = false;
+      return;
+    }
+
+    const userData = await response.json();
+    login({ name: userData.name, email: userData.email });
+    router.push('/');
+  } catch (err) {
+    error.value = lang.value === 'es' ? 'Error al conectar con el servidor' : 'Error connecting to server';
+    loading.value = false;
+  }
 }
 
 const t = computed(() => ({

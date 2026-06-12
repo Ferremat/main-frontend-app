@@ -15,16 +15,32 @@ const rememberMe = ref(false);
 async function handleLogin() {
   error.value = '';
   loading.value = true;
-  // Simulación de llamada a API (sustituir por llamada real)
-  await new Promise((r) => setTimeout(r, 1200));
-  loading.value = false;
 
-  // Extraer nombre del email mientras no haya API real
-  const namePart = form.value.email.split('@')[0];
-  const name = namePart.charAt(0).toUpperCase() + namePart.slice(1);
+  try {
+    const apiUrl = useRuntimeConfig().public.apiUrl || 'http://localhost:3001';
+    const response = await fetch(`${apiUrl}/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: form.value.email,
+        password: form.value.password,
+      }),
+    });
 
-  login({ name, email: form.value.email });
-  router.push('/');
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      error.value = errorData.message || (lang.value === 'es' ? 'Email o contraseña incorrectos' : 'Invalid email or password');
+      loading.value = false;
+      return;
+    }
+
+    const userData = await response.json();
+    login({ name: userData.name, email: userData.email });
+    router.push('/');
+  } catch (err) {
+    error.value = lang.value === 'es' ? 'Error al conectar con el servidor' : 'Error connecting to server';
+    loading.value = false;
+  }
 }
 
 const t = computed(() => ({
