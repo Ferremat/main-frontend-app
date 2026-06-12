@@ -73,7 +73,7 @@ export default defineNuxtConfig({
 
   runtimeConfig: {
     public: {
-      apiUrl: process.env.NUXT_PUBLIC_API_URL || 'http://api.ferremat.es/',
+      apiUrl: process.env.NUXT_PUBLIC_API_URL || 'https://api.ferremat.es/',
       siteUrl: process.env.NUXT_PUBLIC_SITE_URL || 'https://ferremat.es',
     },
   },
