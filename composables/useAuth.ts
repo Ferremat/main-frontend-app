@@ -3,6 +3,11 @@
 export interface AuthUser {
   name: string;
   email: string;
+  phone?: string;
+  address?: string;
+  city?: string;
+  zipCode?: string;
+  registeredDate?: string;
 }
 
 export function useAuth() {

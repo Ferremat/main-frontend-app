@@ -197,6 +197,28 @@ onBeforeUnmount(() => document.removeEventListener('click', handleOutsideClick))
             </div>
 
             <div class="p-2 flex flex-col gap-1">
+              <!-- Profile Link -->
+              <NuxtLink
+                id="user-profile-link"
+                to="/perfil"
+                @click="userOpen = false"
+                class="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-ferremat-blue/5 dark:hover:bg-ferremat-blue/10 transition-colors group text-left"
+              >
+                <div class="w-9 h-9 rounded-xl bg-ferremat-blue/10 dark:bg-ferremat-blue/20 flex items-center justify-center flex-shrink-0 group-hover:bg-ferremat-blue/20 dark:group-hover:bg-ferremat-blue/30 transition-colors">
+                  <User class="w-5 h-5 text-ferremat-blue dark:text-blue-400" stroke-width="2" />
+                </div>
+                <div>
+                  <p class="text-sm font-bold text-gray-800 dark:text-gray-100">
+                    {{ lang === 'es' ? 'Perfil' : 'Profile' }}
+                  </p>
+                  <p class="text-xs text-gray-400 dark:text-gray-500">
+                    {{ lang === 'es' ? 'Ver tu información' : 'View your information' }}
+                  </p>
+                </div>
+              </NuxtLink>
+
+              <div class="my-1 border-t border-gray-100 dark:border-slate-700 transition-colors" />
+
               <!-- Logout -->
               <button
                 id="user-logout-btn"
