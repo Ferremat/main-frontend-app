@@ -1,24 +1,10 @@
-pipeline {
-    agent none
+// ─────────────────────────────────────────────────────────────────
+// Jenkinsfile para main-frontend-app
+// Basado en patrón de main-app (detección de cambios + build + deploy)
+// ─────────────────────────────────────────────────────────────────
 
-    triggers {
-        githubPush()
-    }
-
-    environment {
-        DOCKER_USER  = 'iferlop'
-        APP_NAME     = 'main-frontend-app'
-        NAMESPACE    = 'ferremat-deploy'
-        VALUES_FILE  = 'deploy/kubernetes/charts/main-frontend-app/values.yaml'
-        GIT_REPO_URL = 'https://github.com/Ferremat/main-frontend-app.git'
-    }
-
-    stages {
-
-        stage('Build & Push') {
-            agent {
-                kubernetes {
-                    yaml """
+def getKanikoPod() {
+    return """
 apiVersion: v1
 kind: Pod
 spec:
@@ -53,35 +39,10 @@ spec:
     kubernetes.io/os: linux
   restartPolicy: Never
 """
-                }
-            }
-            steps {
-                checkout scm
-                container('kaniko') {
-                    script {
-                        env.IMAGE_TAG = "${env.BUILD_NUMBER}-${env.GIT_COMMIT.take(7)}"
-                    }
-                    sh """
-                    set -e
-                    echo "Building ${APP_NAME}..."
-                    echo "Image tag: ${IMAGE_TAG}"
-                    /kaniko/executor \\
-                        --context \$(pwd) \\
-                        --dockerfile Dockerfile \\
-                        --destination ${DOCKER_USER}/${APP_NAME}:latest \\
-                        --destination ${DOCKER_USER}/${APP_NAME}:${IMAGE_TAG} \\
-                        --cache=true \\
-                        --cache-repo=${DOCKER_USER}/${APP_NAME}
-                    echo "Build completed: ${DOCKER_USER}/${APP_NAME}:${IMAGE_TAG}"
-                    """
-                }
-            }
-        }
+}
 
-        stage('Update values.yaml & Push to Git') {
-            agent {
-                kubernetes {
-                    yaml """
+def getToolsPod() {
+    return """
 apiVersion: v1
 kind: Pod
 spec:
@@ -102,6 +63,97 @@ spec:
     kubernetes.io/os: linux
   restartPolicy: Never
 """
+}
+
+pipeline {
+    agent none
+
+    triggers {
+        githubPush()
+    }
+
+    environment {
+        DOCKER_USER  = 'iferlop'
+        APP_NAME     = 'main-frontend-app'
+        NAMESPACE    = 'ferremat-deploy'
+        GIT_REPO_URL = 'https://github.com/Ferremat/main-frontend-app.git'
+    }
+
+    stages {
+
+        // ── 1. Checkout & Detección de cambios ────
+        stage('Checkout & Detect Changes') {
+            agent {
+                kubernetes {
+                    yaml getKanikoPod()
+                }
+            }
+            steps {
+                checkout scm
+                script {
+                    env.HAS_CHANGES = 'false'
+                    try {
+                        // Si es el primer build o hay cambios en el código
+                        def hasCodeChanges = sh(
+                            script: '''
+                            if [ -z "$GIT_PREVIOUS_SUCCESSFUL_COMMIT" ]; then
+                                exit 0
+                            fi
+                            git diff --name-only $GIT_PREVIOUS_SUCCESSFUL_COMMIT $GIT_COMMIT | grep -v "values.yaml" | grep -v ".md" > /dev/null
+                            ''',
+                            returnStatus: true
+                        ) == 0
+
+                        if (hasCodeChanges || env.BUILD_ID == '1') {
+                            env.HAS_CHANGES = 'true'
+                            env.IMAGE_TAG = "${env.BUILD_NUMBER}-${env.GIT_COMMIT.take(7)}"
+                            echo "✓ Cambios detectados. TAG: ${env.IMAGE_TAG}"
+                        } else {
+                            echo "ℹ No hay cambios de código. Saltando build."
+                        }
+                    } catch (Exception e) {
+                        env.HAS_CHANGES = 'true'
+                        env.IMAGE_TAG = "${env.BUILD_NUMBER}-${env.GIT_COMMIT.take(7)}"
+                        echo "⚠ Error en detección, asumiendo que hay cambios. TAG: ${env.IMAGE_TAG}"
+                    }
+                }
+            }
+        }
+
+        // ── 2. Build & Push ────────────────────────
+        stage('Build & Push') {
+            when { expression { env.HAS_CHANGES == 'true' } }
+            agent {
+                kubernetes {
+                    yaml getKanikoPod()
+                }
+            }
+            steps {
+                checkout scm
+                container('kaniko') {
+                    sh """
+                    set -e
+                    echo "🚀 Building ${APP_NAME}..."
+                    echo "Image tag: ${IMAGE_TAG}"
+                    /kaniko/executor \\
+                        --context \$(pwd) \\
+                        --dockerfile Dockerfile \\
+                        --destination ${DOCKER_USER}/${APP_NAME}:latest \\
+                        --destination ${DOCKER_USER}/${APP_NAME}:${IMAGE_TAG} \\
+                        --cache=true \\
+                        --cache-repo=${DOCKER_USER}/${APP_NAME}
+                    echo "✓ Build completado: ${DOCKER_USER}/${APP_NAME}:${IMAGE_TAG}"
+                    """
+                }
+            }
+        }
+
+        // ── 3. Update values.yaml & Push to Git ────
+        stage('Update values.yaml & Push') {
+            when { expression { env.HAS_CHANGES == 'true' } }
+            agent {
+                kubernetes {
+                    yaml getToolsPod()
                 }
             }
             steps {
@@ -112,44 +164,79 @@ spec:
                         usernameVariable: 'GIT_USER',
                         passwordVariable: 'GIT_TOKEN'
                     )]) {
-                        sh """
+                        sh '''
                         set -e
 
-                        git config --global --add safe.directory \$(pwd)
+                        git config --global --add safe.directory $(pwd)
                         git config --global user.email "jenkins@ferremat.es"
                         git config --global user.name "Jenkins CI"
 
-                        REPO_NO_SCHEME=\$(echo "${GIT_REPO_URL}" | sed 's|https://||')
+                        REPO_NO_SCHEME=$(echo "${GIT_REPO_URL}" | sed 's|https://||')
+                        VALUES_FILE="deploy/kubernetes/charts/main-frontend-app/values.yaml"
 
-                        git fetch https://\${GIT_USER}:\${GIT_TOKEN}@\${REPO_NO_SCHEME} develop
+                        git fetch https://${GIT_USER}:${GIT_TOKEN}@${REPO_NO_SCHEME} develop
                         git checkout -B develop FETCH_HEAD
 
-                        echo "Updating image tag to ${IMAGE_TAG} in ${VALUES_FILE}..."
-                        sed -i 's|^    tag:.*|    tag: ${IMAGE_TAG}|' ${VALUES_FILE}
+                        echo "📝 Actualizando ${VALUES_FILE}..."
+                        sed -i "s|^    tag:.*|    tag: ${IMAGE_TAG}|" ${VALUES_FILE}
 
-                        echo "--- values.yaml after update ---"
-                        cat ${VALUES_FILE}
+                        cat ${VALUES_FILE} | grep -A 2 "image:"
 
                         git add ${VALUES_FILE}
-                        git diff --cached --quiet || git commit -m "ci: update ${APP_NAME} image to ${IMAGE_TAG} [skip ci]"
+                        git diff --cached --quiet || git commit -m "ci: update image tag to ${IMAGE_TAG} [skip ci]"
+                        git push https://${GIT_USER}:${GIT_TOKEN}@${REPO_NO_SCHEME} HEAD:develop
 
-                        git push https://\${GIT_USER}:\${GIT_TOKEN}@\${REPO_NO_SCHEME} HEAD:develop
-
-                        echo "values.yaml pushed — ArgoCD will sync automatically"
-                        """
+                        echo "✓ values.yaml actualizado y pusheado a develop"
+                        '''
                     }
                 }
             }
         }
 
-    }
+        // ── 4. Restart Deployment ──────────────────
+        stage('Restart Deployment') {
+            when { expression { env.HAS_CHANGES == 'true' } }
+            agent {
+                kubernetes {
+                    yaml getToolsPod()
+                }
+            }
+            steps {
+                container('tools') {
+                    sh '''
+                    set -e
+                    echo "🔄 Reiniciando deployment ${APP_NAME}..."
+
+                    kubectl rollout restart deployment/${APP_NAME} -n ${NAMESPACE}
+
+                    echo "⏳ Esperando rollout..."
+                    kubectl rollout status deployment/${APP_NAME} -n ${NAMESPACE} --timeout=300s
+
+                    echo "✓ Deployment actualizado exitosamente"
+
+                    echo ""
+                    echo "📊 Status actual:"
+                    kubectl get deployment ${APP_NAME} -n ${NAMESPACE} -o wide
+                    '''
+                }
+            }
+        }
+
+    } // fin stages
 
     post {
         success {
-            echo "Pipeline completed: image published and values.yaml updated."
+            echo "✅ Pipeline completado: imagen publicada y deployment reiniciado"
         }
         failure {
-            echo "Pipeline failed. Check the logs."
+            echo "❌ Pipeline fallido. Revisa los logs de la etapa en rojo"
+        }
+        always {
+            echo "───────────────────────────────────────"
+            echo "BUILD: #${BUILD_NUMBER}"
+            echo "COMMIT: ${GIT_COMMIT}"
+            echo "───────────────────────────────────────"
         }
     }
+
 }
