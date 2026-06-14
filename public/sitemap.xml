@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"
+        xmlns:mobile="http://www.mobile.googlebot.com/schemas/mobile/1.0/">
+
+  <!-- Página Principal -->
+  <url>
+    <loc>https://ferremat.es/</loc>
+    <lastmod>2024-06-10</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+  </url>
+
+  <!-- Página Conócenos -->
+  <url>
+    <loc>https://ferremat.es/conocenos</loc>
+    <lastmod>2024-06-10</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <!-- Página Contáctanos -->
+  <url>
+    <loc>https://ferremat.es/contactanos</loc>
+    <lastmod>2024-06-10</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <!-- Página Políticas -->
+  <url>
+    <loc>https://ferremat.es/politicas</loc>
+    <lastmod>2024-06-10</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+
+  <!-- Página Login -->
+  <url>
+    <loc>https://ferremat.es/login</loc>
+    <lastmod>2024-06-10</lastmod>
+    <changefreq>never</changefreq>
+    <priority>0.3</priority>
+  </url>
+
+  <!-- Página Carrito (No se indexa, pero se incluye para referencia) -->
+  <url>
+    <loc>https://ferremat.es/carrito</loc>
+    <lastmod>2024-06-10</lastmod>
+    <changefreq>never</changefreq>
+    <priority>0.1</priority>
+  </url>
+
+</urlset>

@@ -1,12 +1,17 @@
 <script setup lang="ts">
 const { theme, initTheme } = useSettings();
-const { initAuth } = useAuth();
+const { initAuth, isLoggedIn } = useAuth();
 const { initCart } = useCart();
+const { initTour } = useTour();
 
 onMounted(() => {
   initTheme();
   initAuth();
   initCart();
+  // Iniciar tour si el usuario está logueado
+  if (isLoggedIn.value) {
+    initTour();
+  }
 });
 
 // Keep the <html> dark class in sync with the reactive theme state
@@ -22,6 +27,9 @@ watch(theme, (val) => {
     class="min-h-screen flex flex-col font-sans transition-colors duration-300"
     :class="theme === 'dark' ? 'bg-slate-900 text-gray-100' : 'bg-white text-gray-900'"
   >
+    <!-- Tour guiado -->
+    <GuidedTour />
+
     <AppHeader />
     <main class="flex-1">
       <slot />

@@ -59,7 +59,7 @@ spec:
                 checkout scm
                 container('kaniko') {
                     script {
-                        env.IMAGE_TAG = "${env.BUILD_NUMBER}-${env.GIT_COMMIT.take(7)}"
+                        env.IMAGE_TAG = env.GIT_COMMIT.take(7)
                     }
                     sh """
                     set -e
@@ -121,8 +121,8 @@ spec:
 
                         REPO_NO_SCHEME=\$(echo "${GIT_REPO_URL}" | sed 's|https://||')
 
-                        git fetch https://\${GIT_USER}:\${GIT_TOKEN}@\${REPO_NO_SCHEME} main
-                        git checkout -B main FETCH_HEAD
+                        git fetch https://\${GIT_USER}:\${GIT_TOKEN}@\${REPO_NO_SCHEME} develop
+                        git checkout -B develop FETCH_HEAD
 
                         echo "Updating image tag to ${IMAGE_TAG} in ${VALUES_FILE}..."
                         sed -i 's|^    tag:.*|    tag: ${IMAGE_TAG}|' ${VALUES_FILE}
@@ -133,7 +133,7 @@ spec:
                         git add ${VALUES_FILE}
                         git diff --cached --quiet || git commit -m "ci: update ${APP_NAME} image to ${IMAGE_TAG} [skip ci]"
 
-                        git push https://\${GIT_USER}:\${GIT_TOKEN}@\${REPO_NO_SCHEME} HEAD:main
+                        git push https://\${GIT_USER}:\${GIT_TOKEN}@\${REPO_NO_SCHEME} HEAD:develop
 
                         echo "values.yaml pushed — ArgoCD will sync automatically"
                         """
