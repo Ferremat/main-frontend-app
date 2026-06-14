@@ -69,7 +69,7 @@ pipeline {
     agent none
 
     triggers {
-        githubPush()
+        pollSCM('H/5 * * * *') // Revisa cada 5 minutos
     }
 
     environment {
@@ -106,15 +106,17 @@ pipeline {
 
                         if (hasCodeChanges || env.BUILD_ID == '1') {
                             env.HAS_CHANGES = 'true'
-                            env.IMAGE_TAG = "${env.BUILD_NUMBER}-${env.GIT_COMMIT.take(7)}"
-                            echo "✓ Cambios detectados. TAG: ${env.IMAGE_TAG}"
+                            env.IMAGE_TAG = "latest"
+                            env.IMAGE_COMMIT = env.GIT_COMMIT.take(7)
+                            echo "✓ Cambios detectados. Build #${BUILD_NUMBER} - Commit: ${env.IMAGE_COMMIT}"
                         } else {
                             echo "ℹ No hay cambios de código. Saltando build."
                         }
                     } catch (Exception e) {
                         env.HAS_CHANGES = 'true'
-                        env.IMAGE_TAG = "${env.BUILD_NUMBER}-${env.GIT_COMMIT.take(7)}"
-                        echo "⚠ Error en detección, asumiendo que hay cambios. TAG: ${env.IMAGE_TAG}"
+                        env.IMAGE_TAG = "latest"
+                        env.IMAGE_COMMIT = env.GIT_COMMIT.take(7)
+                        echo "⚠ Error en detección, asumiendo que hay cambios."
                     }
                 }
             }
@@ -134,15 +136,15 @@ pipeline {
                     sh """
                     set -e
                     echo "🚀 Building ${APP_NAME}..."
-                    echo "Image tag: ${IMAGE_TAG}"
+                    echo "Commit: ${IMAGE_COMMIT}"
                     /kaniko/executor \\
                         --context \$(pwd) \\
                         --dockerfile Dockerfile \\
                         --destination ${DOCKER_USER}/${APP_NAME}:latest \\
-                        --destination ${DOCKER_USER}/${APP_NAME}:${IMAGE_TAG} \\
+                        --destination ${DOCKER_USER}/${APP_NAME}:${IMAGE_COMMIT} \\
                         --cache=true \\
                         --cache-repo=${DOCKER_USER}/${APP_NAME}
-                    echo "✓ Build completado: ${DOCKER_USER}/${APP_NAME}:${IMAGE_TAG}"
+                    echo "✓ Build completado: ${DOCKER_USER}/${APP_NAME}:latest (${IMAGE_COMMIT})"
                     """
                 }
             }
@@ -178,12 +180,12 @@ pipeline {
                         git checkout -B develop FETCH_HEAD
 
                         echo "📝 Actualizando ${VALUES_FILE}..."
-                        sed -i "s|^    tag:.*|    tag: ${IMAGE_TAG}|" ${VALUES_FILE}
+                        sed -i "s|^    tag:.*|    tag: ${IMAGE_COMMIT}|" ${VALUES_FILE}
 
                         cat ${VALUES_FILE} | grep -A 2 "image:"
 
                         git add ${VALUES_FILE}
-                        git diff --cached --quiet || git commit -m "ci: update image tag to ${IMAGE_TAG} [skip ci]"
+                        git diff --cached --quiet || git commit -m "ci: update image commit to ${IMAGE_COMMIT} [skip ci]"
                         git push https://${GIT_USER}:${GIT_TOKEN}@${REPO_NO_SCHEME} HEAD:develop
 
                         echo "✓ values.yaml actualizado y pusheado a develop"
