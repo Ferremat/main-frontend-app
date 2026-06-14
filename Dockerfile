@@ -13,7 +13,6 @@ COPY . .
 
 ENV NODE_ENV=production
 ENV NUXT_TELEMETRY_DISABLED=1
-ENV NITRO_PRERENDER=false
 
 RUN npm run build
 

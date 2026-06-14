@@ -46,8 +46,7 @@ useSeo({
 
     <!-- Hero Banner -->
     <div class="relative h-64 overflow-hidden">
-      <div class="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1504307651254-35680f356dfd?auto=format&fit=crop&q=80&w=2070')] bg-cover bg-center scale-105" />
-      <div class="absolute inset-0 bg-gradient-to-r from-ferremat-blue/90 via-ferremat-blue/70 to-ferremat-blue/40" />
+      <div class="absolute inset-0 bg-gradient-to-r from-ferremat-blue via-ferremat-blue/70 to-ferremat-blue/40 scale-105" />
       <div class="relative h-full flex flex-col items-center justify-center text-center px-6">
         <div class="flex items-center gap-3 mb-3">
           <div class="bg-ferremat-orange p-2 rounded-md">
