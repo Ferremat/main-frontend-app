@@ -26,50 +26,24 @@ const { fetchProductById, fetchProducts } = useApi();
 const quantity = ref(1);
 const added    = ref(false);
 
-// Helper: generar slug desde nombre
-const generateSlug = (name: string) =>
-  name
-    .toLowerCase()
-    .trim()
-    .replace(/\s+/g, '-')
-    .replace(/[^\w-]/g, '');
-
 // ── Fetch con useAsyncData (SSR compatible) ────────────────────────────────────
 const { data: product, pending: loading, error: fetchError } = useAsyncData(
-  'product',
+  () => `product-${route.query.id}`,
   async () => {
-    const slug = route.params.slug as string;
-    const idFromQuery = (route.query.id as string) || null;
+    const productId = (route.query.id as string) || null;
 
-    if (!slug && !idFromQuery) {
+    if (!productId) {
       throw new Error('Product not found');
     }
 
-    let fetchedProduct: Product | null = null;
-
-    // Intenta cargar por ID si viene en query params
-    if (idFromQuery) {
-      try {
-        fetchedProduct = await fetchProductById(idFromQuery);
-      } catch {
-        fetchedProduct = null;
-      }
-    }
-
-    // Si no hay producto y hay slug, busca en todos los productos
-    if (!fetchedProduct && slug) {
-      const allProducts = await fetchProducts();
-      const slugNormalized = generateSlug(slug);
-      fetchedProduct = allProducts.find(p => generateSlug(p.name) === slugNormalized) || null;
-    }
-
-    if (!fetchedProduct) {
+    try {
+      const fetchedProduct = await fetchProductById(productId);
+      return fetchedProduct;
+    } catch (err) {
       throw new Error('Product not found');
     }
-
-    return fetchedProduct;
   },
-  { watch: [() => route.params.slug, () => route.query.id] }
+  { watch: [() => route.query.id] }
 );
 
 const error = computed(() => {
