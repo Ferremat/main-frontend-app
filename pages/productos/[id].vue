@@ -12,6 +12,7 @@ import {
   Share2,
   Truck,
   Shield,
+  LogIn,
 } from 'lucide-vue-next';
 import type { Product } from '~/composables/useApi';
 
@@ -19,7 +20,8 @@ const route  = useRoute();
 const router = useRouter();
 const { lang, theme } = useSettings();
 const { addItem } = useCart();
-const { fetchProductById } = useApi();
+const { isLoggedIn } = useAuth();
+const { fetchProductById, fetchProducts } = useApi();
 
 const product  = ref<Product | null>(null);
 const loading  = ref(true);
@@ -30,14 +32,42 @@ const added    = ref(false); // feedback tras añadir al carrito
 // ── Fetch ────────────────────────────────────────────────────────────────────
 onMounted(async () => {
   try {
-    const id = route.params.id as string;
-    if (!id) {
-      throw new Error('Product ID not provided');
+    const slug = route.params.id as string;
+    const idFromQuery = (route.query.id as string) || null;
+
+    if (!slug && !idFromQuery) {
+      throw new Error('Product not found');
     }
-    const fetchedProduct = await fetchProductById(id);
+
+    let fetchedProduct: Product | null = null;
+
+    // Intenta cargar por ID si viene en query params
+    if (idFromQuery) {
+      try {
+        fetchedProduct = await fetchProductById(idFromQuery);
+      } catch {
+        // Si falla, intenta por slug
+        fetchedProduct = null;
+      }
+    }
+
+    // Si no hay producto y hay slug, busca en todos los productos
+    if (!fetchedProduct && slug) {
+      const allProducts = await fetchProducts();
+      const slugNormalized = slug.toLowerCase().replace(/[^\w-]/g, '');
+      fetchedProduct = allProducts.find(p =>
+        p.name
+          .toLowerCase()
+          .trim()
+          .replace(/\s+/g, '-')
+          .replace(/[^\w-]/g, '') === slugNormalized
+      ) || null;
+    }
+
     if (!fetchedProduct) {
       throw new Error('Product not found');
     }
+
     product.value = fetchedProduct;
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : '';
@@ -69,6 +99,11 @@ function inc() { if (quantity.value < stock.value) quantity.value++; }
 
 // ── Add to cart ──────────────────────────────────────────────────────────────
 function handleAddToCart() {
+  if (!isLoggedIn.value) {
+    router.push('/login');
+    return;
+  }
+
   if (!product.value) return;
   addItem({
     id:       product.value.id,
@@ -288,17 +323,31 @@ useHead({
             <!-- Add button -->
             <button
               @click="handleAddToCart"
-              :disabled="!inStock"
-              class="flex-1 flex items-center justify-center gap-2.5 font-bold text-white py-3 px-6 rounded-xl transition-all duration-200 shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+              :disabled="!inStock || !isLoggedIn"
+              :title="!isLoggedIn ? (lang === 'es' ? 'Inicia sesión para comprar' : 'Sign in to shop') : ''"
+              class="flex-1 flex items-center justify-center gap-2.5 font-bold text-white py-3 px-6 rounded-xl transition-all duration-200 shadow-md"
               :class="added
                 ? 'bg-emerald-500 shadow-emerald-200'
-                : 'bg-ferremat-orange hover:bg-orange-500 shadow-ferremat-orange/20 active:scale-95'"
+                : isLoggedIn && inStock
+                  ? 'bg-ferremat-orange hover:bg-orange-500 shadow-ferremat-orange/20 active:scale-95'
+                  : !isLoggedIn
+                    ? 'bg-gray-400 dark:bg-gray-600 cursor-not-allowed opacity-75 hover:bg-gray-400 dark:hover:bg-gray-600'
+                    : 'bg-gray-400 cursor-not-allowed opacity-50'"
             >
               <CheckCircle v-if="added" class="w-5 h-5" stroke-width="2" />
-              <ShoppingCart v-else class="w-5 h-5" stroke-width="2" />
-              {{ added
-                ? (lang === 'es' ? '¡Añadido!' : 'Added!')
-                : (lang === 'es' ? 'Agregar al carrito' : 'Add to cart') }}
+              <component
+                :is="isLoggedIn ? ShoppingCart : LogIn"
+                v-else
+                class="w-5 h-5"
+                stroke-width="2"
+              />
+              {{
+                added
+                  ? (lang === 'es' ? '¡Añadido!' : 'Added!')
+                  : !isLoggedIn
+                    ? (lang === 'es' ? 'Inicia sesión para comprar' : 'Sign in to shop')
+                    : (lang === 'es' ? 'Agregar al carrito' : 'Add to cart')
+              }}
             </button>
           </div>
 

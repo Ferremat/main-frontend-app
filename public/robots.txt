@@ -1,2 +1,29 @@
-User-Agent: *
-Disallow:
+# Ferremat - Ferretería Online
+# Archivo robots.txt para optimización SEO
+
+# Permitir a todos los bots
+User-agent: *
+Allow: /
+Disallow: /login
+Disallow: /carrito
+Disallow: /admin
+Disallow: /.nuxt
+Disallow: /node_modules
+Disallow: /_nuxt
+
+# Reglas específicas para Google
+User-agent: Googlebot
+Allow: /
+Crawl-delay: 0
+
+# Reglas específicas para Bing
+User-agent: Bingbot
+Allow: /
+Crawl-delay: 1
+
+# Sitemap
+Sitemap: https://ferremat.es/sitemap.xml
+
+# Tiempo de espera para bots estándar (en segundos)
+Crawl-delay: 1
+Request-rate: 1/10s
