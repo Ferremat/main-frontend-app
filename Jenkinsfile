@@ -16,6 +16,12 @@ spec:
     volumeMounts:
     - name: docker-secret
       mountPath: /kaniko/.docker
+  - name: kubectl
+    image: bitnami/kubectl:latest
+    command:
+    - sleep
+    args:
+    - 99999
   volumes:
   - name: docker-secret
     secret:
@@ -110,18 +116,20 @@ spec:
         stage('Restart Deployment') {
             steps {
                 echo "🔄 Reiniciando pods con imagen nueva..."
-                sh '''
-                    DEPLOYMENT="main-frontend-app-deployment"
-                    NAMESPACE="ferremat-deploy"
+                container('kubectl') {
+                    sh '''
+                        DEPLOYMENT="main-frontend-app-deployment"
+                        NAMESPACE="ferremat-deploy"
 
-                    echo "Reiniciando deployment: ${DEPLOYMENT}"
-                    kubectl rollout restart deployment/${DEPLOYMENT} -n ${NAMESPACE}
+                        echo "Reiniciando deployment: ${DEPLOYMENT}"
+                        kubectl rollout restart deployment/${DEPLOYMENT} -n ${NAMESPACE}
 
-                    echo "Esperando a que los pods se estabilicen..."
-                    kubectl rollout status deployment/${DEPLOYMENT} -n ${NAMESPACE} --timeout=5m
+                        echo "Esperando a que los pods se estabilicen..."
+                        kubectl rollout status deployment/${DEPLOYMENT} -n ${NAMESPACE} --timeout=5m
 
-                    echo "✓ Deployment reiniciado exitosamente"
-                '''
+                        echo "✓ Deployment reiniciado exitosamente"
+                    '''
+                }
             }
         }
 
