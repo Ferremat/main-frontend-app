@@ -9,7 +9,6 @@ import {
   AlertTriangle,
   Plus,
   Minus,
-  Share2,
   Truck,
   Shield,
   LogIn,
@@ -21,7 +20,7 @@ const router = useRouter();
 const { lang, theme } = useSettings();
 const { addItem } = useCart();
 const { isLoggedIn } = useAuth();
-const { fetchProductById, fetchProducts } = useApi();
+const { fetchProductById } = useApi();
 
 const quantity = ref(1);
 const added    = ref(false);
@@ -48,10 +47,9 @@ const { data: product, pending: loading, error: fetchError } = useAsyncData(
 
 const error = computed(() => {
   if (!fetchError.value) return null;
-  const errorMessage = fetchError.value instanceof Error ? fetchError.value.message : '';
   return lang.value === 'es'
-    ? (errorMessage.includes('not found') ? 'Producto no encontrado.' : 'No se pudo cargar el producto.')
-    : (errorMessage.includes('not found') ? 'Product not found.' : 'Product could not be loaded.');
+    ? 'No se pudo cargar el producto.'
+    : 'Product could not be loaded.';
 });
 
 // ── Computed helpers ─────────────────────────────────────────────────────────
@@ -98,7 +96,6 @@ const cardBg  = computed(() => theme.value === 'dark' ? 'bg-slate-800 border-sla
 const headTxt = computed(() => theme.value === 'dark' ? 'text-gray-100' : 'text-gray-800');
 const subTxt  = computed(() => theme.value === 'dark' ? 'text-slate-400' : 'text-gray-500');
 const divider = computed(() => theme.value === 'dark' ? 'border-slate-700' : 'border-gray-200');
-const badgeBg = computed(() => theme.value === 'dark' ? 'bg-slate-700 text-slate-300' : 'bg-slate-100 text-slate-600');
 
 // ── SEO ──────────────────────────────────────────────────────────────────────
 useHead({
@@ -250,7 +247,7 @@ useHead({
                 <p class="text-sm font-bold truncate" :class="headTxt">{{ product.id }}</p>
               </div>
             </div>
-            <!-- Price per unit -->
+            <!-- Warranty -->
             <div class="flex items-center gap-3 rounded-xl border p-3 transition-colors duration-300" :class="cardBg">
               <div class="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center flex-shrink-0">
                 <Shield class="w-4 h-4 text-emerald-500" stroke-width="2" />
