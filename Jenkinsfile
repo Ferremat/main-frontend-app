@@ -81,50 +81,8 @@ pipeline {
 
     stages {
 
-        // ── 1. Checkout & Detección de cambios ────
-        stage('Checkout & Detect Changes') {
-            agent {
-                kubernetes {
-                    yaml getKanikoPod()
-                }
-            }
-            steps {
-                checkout scm
-                script {
-                    env.HAS_CHANGES = 'false'
-                    try {
-                        // Si es el primer build o hay cambios en el código
-                        def hasCodeChanges = sh(
-                            script: '''
-                            if [ -z "$GIT_PREVIOUS_SUCCESSFUL_COMMIT" ]; then
-                                exit 0
-                            fi
-                            git diff --name-only $GIT_PREVIOUS_SUCCESSFUL_COMMIT $GIT_COMMIT | grep -v "values.yaml" | grep -v ".md" > /dev/null
-                            ''',
-                            returnStatus: true
-                        ) == 0
-
-                        if (hasCodeChanges || env.BUILD_ID == '1') {
-                            env.HAS_CHANGES = 'true'
-                            env.IMAGE_TAG = "latest"
-                            env.IMAGE_COMMIT = env.GIT_COMMIT.take(7)
-                            echo "✓ Cambios detectados. Build #${BUILD_NUMBER} - Commit: ${env.IMAGE_COMMIT}"
-                        } else {
-                            echo "ℹ No hay cambios de código. Saltando build."
-                        }
-                    } catch (Exception e) {
-                        env.HAS_CHANGES = 'true'
-                        env.IMAGE_TAG = "latest"
-                        env.IMAGE_COMMIT = env.GIT_COMMIT.take(7)
-                        echo "⚠ Error en detección, asumiendo que hay cambios."
-                    }
-                }
-            }
-        }
-
-        // ── 2. Build & Push ────────────────────────
+        // ── 1. Build & Push ────────────────────────
         stage('Build & Push') {
-            when { expression { env.HAS_CHANGES == 'true' } }
             agent {
                 kubernetes {
                     yaml getKanikoPod()
@@ -133,6 +91,10 @@ pipeline {
             steps {
                 checkout scm
                 container('kaniko') {
+                    script {
+                        env.IMAGE_TAG = "latest"
+                        env.IMAGE_COMMIT = env.GIT_COMMIT.take(7)
+                    }
                     sh """
                     set -e
                     echo "🚀 Building ${APP_NAME}..."
@@ -150,9 +112,8 @@ pipeline {
             }
         }
 
-        // ── 3. Update values.yaml & Push to Git ────
+        // ── 2. Update values.yaml & Push to Git ────
         stage('Update values.yaml & Push') {
-            when { expression { env.HAS_CHANGES == 'true' } }
             agent {
                 kubernetes {
                     yaml getToolsPod()
@@ -195,9 +156,8 @@ pipeline {
             }
         }
 
-        // ── 4. Restart Deployment ──────────────────
+        // ── 3. Restart Deployment ──────────────────
         stage('Restart Deployment') {
-            when { expression { env.HAS_CHANGES == 'true' } }
             agent {
                 kubernetes {
                     yaml getToolsPod()
