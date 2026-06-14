@@ -3,9 +3,14 @@ const { theme, initTheme } = useSettings();
 const { initAuth } = useAuth();
 const { initCart } = useCart();
 
+useAsyncData('layout-init', async () => {
+  initAuth();
+  initTheme();
+  initCart();
+});
+
 onMounted(() => {
   initTheme();
-  initAuth();
   initCart();
 });
 
