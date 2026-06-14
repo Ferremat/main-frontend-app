@@ -107,48 +107,28 @@ spec:
             }
         }
 
-        stage('Update Helm Values') {
+        stage('Restart Deployment') {
             steps {
-                echo "📝 Actualizando valores de Helm..."
+                echo "🔄 Reiniciando pods con imagen nueva..."
                 sh '''
-                # Obtener los primeros 7 caracteres del commit
-                COMMIT_SHORT=$(echo ${GIT_COMMIT} | cut -c1-7)
-                HELM_FILE="deploy/kubernetes/charts/main-frontend-app/values.yaml"
+                    DEPLOYMENT="main-frontend-app-deployment"
+                    NAMESPACE="ferremat-deploy"
 
-                echo "Commit short: ${COMMIT_SHORT}"
-                echo "Archivo: ${HELM_FILE}"
+                    echo "Reiniciando deployment: ${DEPLOYMENT}"
+                    kubectl rollout restart deployment/${DEPLOYMENT} -n ${NAMESPACE}
 
-                # Usar awk para reemplazar la línea de restartedAt
-                awk -v commit="${COMMIT_SHORT}" '/restartedAt:/ { print "    restartedAt: \"" commit "\""; next } { print }' "${HELM_FILE}" > "${HELM_FILE}.tmp" && mv "${HELM_FILE}.tmp" "${HELM_FILE}"
+                    echo "Esperando a que los pods se estabilicen..."
+                    kubectl rollout status deployment/${DEPLOYMENT} -n ${NAMESPACE} --timeout=5m
 
-                # Mostrar el cambio
-                echo "Contenido actualizado:"
-                grep -A 1 "podAnnotations:" "${HELM_FILE}"
-
-                # Configurar git
-                git config user.email "jenkins@ferremat.es"
-                git config user.name "Jenkins CI"
-
-                # Commit y push
-                git add "${HELM_FILE}"
-                if git commit -m "CI: Update pod annotation with commit ${COMMIT_SHORT}"; then
-                    echo "Pushing cambios..."
-                    # Push directo desde el HEAD (estamos en detached HEAD después del commit)
-                    git push https://github.com/Ferremat/main-frontend-app.git HEAD:refs/heads/develop 2>&1 || \
-                    git push origin HEAD:develop 2>&1 || \
-                    echo "⚠ Push falló - continuando"
-                    echo "✓ Commit completado"
-                else
-                    echo "No hay cambios para hacer commit"
-                fi
+                    echo "✓ Deployment reiniciado exitosamente"
                 '''
             }
         }
 
-        stage('Sync ArgoCD') {
+        stage('Verify Rollout') {
             steps {
-                echo "🔄 ArgoCD sincronizará automáticamente los cambios en valores.yaml"
-                echo "✓ Pipeline completado - Espera a que Argo aplique los cambios"
+                echo "✅ Pipeline completado exitosamente"
+                echo "Los nuevos pods están corriendo con la imagen latest"
             }
         }
     }
