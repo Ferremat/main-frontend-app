@@ -3,6 +3,7 @@ import ProductCard from './ProductCard.vue';
 
 const { lang, theme } = useSettings();
 const { fetchProducts } = useApi();
+const route = useRoute();
 
 const products = ref<any[]>([]);
 const loading = ref(true);
@@ -29,8 +30,10 @@ watch(lang, (l) => {
   }
 });
 
-const mappedProducts = computed(() =>
-  products.value.map((p) => ({
+const searchQuery = computed(() => (route.query.search as string) || '');
+
+const mappedProducts = computed(() => {
+  let filtered = products.value.map((p) => ({
     id:          p.id,
     title:       p.name,
     brand:       p.category?.name ?? '',
@@ -39,10 +42,27 @@ const mappedProducts = computed(() =>
     price:       Number(p.price) || 0,
     category:    p.category?.name ?? '',
     stock:       p.stock ?? 0,
-  }))
-);
+  }));
 
-const sectionTitle  = computed(() => lang.value === 'es' ? 'Todos los Productos' : 'All Products');
+  if (searchQuery.value) {
+    const query = searchQuery.value.toLowerCase();
+    filtered = filtered.filter(p =>
+      p.title.toLowerCase().includes(query) ||
+      p.category.toLowerCase().includes(query) ||
+      p.description.toLowerCase().includes(query)
+    );
+  }
+
+  return filtered;
+});
+
+const sectionTitle  = computed(() => {
+  if (searchQuery.value) {
+    return lang.value === 'es' ? `Resultados de búsqueda: "${searchQuery.value}"` : `Search results: "${searchQuery.value}"`;
+  }
+  return lang.value === 'es' ? 'Todos los Productos' : 'All Products';
+});
+
 const productsFound = computed(() =>
   lang.value === 'es'
     ? `${mappedProducts.value.length} productos encontrados`
@@ -56,13 +76,13 @@ const productsFound = computed(() =>
     <div class="mb-6">
       <h2
         class="font-bold text-2xl transition-colors duration-300"
-        :class="theme === 'dark' ? 'text-blue-300' : 'text-ferremat-blue'"
+        :class="theme === 'dark' ? 'text-blue-400' : 'text-ferremat-blue'"
       >
         {{ sectionTitle }}
       </h2>
       <p
         class="text-sm mt-1 transition-colors duration-300"
-        :class="theme === 'dark' ? 'text-slate-400' : 'text-slate-500'"
+        :class="theme === 'dark' ? 'text-gray-500' : 'text-slate-500'"
       >
         {{ productsFound }}
       </p>

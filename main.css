@@ -10,3 +10,62 @@
 body {
   font-family: "Inter", sans-serif;
 }
+
+html.dark {
+  @apply bg-slate-950 text-gray-100;
+  color-scheme: dark;
+}
+
+html.dark body {
+  @apply bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950;
+}
+
+html.dark * {
+  @apply transition-colors duration-300;
+}
+
+/* Smooth dark mode colors */
+html.dark {
+  /* Cards and containers */
+  --tw-bg-opacity: 1;
+}
+
+html.dark [class*="bg-white"] {
+  @apply bg-slate-800 bg-opacity-60;
+}
+
+html.dark [class*="border-gray-100"] {
+  @apply border-slate-800;
+}
+
+html.dark [class*="text-gray-800"] {
+  @apply text-gray-100;
+}
+
+html.dark [class*="text-gray-700"] {
+  @apply text-gray-200;
+}
+
+html.dark [class*="text-gray-600"] {
+  @apply text-gray-400;
+}
+
+html.dark [class*="text-gray-500"] {
+  @apply text-gray-500;
+}
+
+html.dark [class*="bg-gray-50"] {
+  @apply bg-slate-800;
+}
+
+html.dark [class*="bg-gray-100"] {
+  @apply bg-slate-800;
+}
+
+html.dark [class*="border-gray-200"] {
+  @apply border-slate-700;
+}
+
+html.dark [class*="border-gray-300"] {
+  @apply border-slate-700;
+}
