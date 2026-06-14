@@ -14,7 +14,8 @@ const { data: products, pending: loading, error: fetchError } = useAsyncData(
       console.error('Error fetching products:', err);
       throw new Error(err?.message || 'Failed to load products');
     }
-  }
+  },
+  { cache: false }
 );
 
 const error = computed(() => {

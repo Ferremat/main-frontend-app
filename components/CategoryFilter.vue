@@ -10,7 +10,8 @@ const { data: categories, pending: loading } = useAsyncData(
     } catch {
       return [];
     }
-  }
+  },
+  { cache: false }
 );
 
 const sectionTitle = computed(() =>
