@@ -2,7 +2,7 @@ pipeline {
     agent none
 
     triggers {
-        githubPush()
+        pollSCM('* * * * *')
     }
 
     environment {
