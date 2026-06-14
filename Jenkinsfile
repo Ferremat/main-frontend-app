@@ -69,7 +69,7 @@ pipeline {
     agent none
 
     triggers {
-        pollSCM('H/5 * * * *') // Revisa cada 5 minutos
+        githubPush()
     }
 
     environment {
@@ -90,6 +90,19 @@ pipeline {
             }
             steps {
                 checkout scm
+                script {
+                    // Ignorar commits de Jenkins CI (tienen [skip ci])
+                    def commitMsg = sh(
+                        script: "git log -1 --pretty=%B",
+                        returnStdout: true
+                    ).trim()
+
+                    if (commitMsg.contains('[skip ci]')) {
+                        echo "⏭️ Saltando build - commit tiene [skip ci]"
+                        currentBuild.result = 'SUCCESS'
+                        return
+                    }
+                }
                 container('kaniko') {
                     script {
                         env.IMAGE_TAG = "latest"
