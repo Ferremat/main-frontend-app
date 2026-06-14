@@ -113,21 +113,35 @@ spec:
                 sh '''
                 # Obtener los primeros 7 caracteres del commit
                 COMMIT_SHORT=$(echo ${GIT_COMMIT} | cut -c1-7)
+                HELM_FILE="deploy/kubernetes/charts/main-frontend-app/values.yaml"
 
-                # Actualizar el values.yaml con el hash del commit
-                sed -i "s/restartedAt: .*/restartedAt: \"${COMMIT_SHORT}\"/" \
-                  deploy/kubernetes/charts/main-frontend-app/values.yaml
+                echo "Commit short: ${COMMIT_SHORT}"
+                echo "Archivo: ${HELM_FILE}"
+
+                # Usar awk para reemplazar la línea de restartedAt
+                awk -v commit="${COMMIT_SHORT}" '
+                  /restartedAt:/ { print "    restartedAt: \"" commit "\""; next }
+                  { print }
+                ' "${HELM_FILE}" > "${HELM_FILE}.tmp" && mv "${HELM_FILE}.tmp" "${HELM_FILE}"
+
+                # Mostrar el cambio
+                echo "Contenido actualizado:"
+                grep -A 1 "podAnnotations:" "${HELM_FILE}"
 
                 # Configurar git
                 git config user.email "jenkins@ferremat.es"
                 git config user.name "Jenkins CI"
 
                 # Commit y push
-                git add deploy/kubernetes/charts/main-frontend-app/values.yaml
-                git commit -m "CI: Update pod annotation with commit ${COMMIT_SHORT}" || true
-                git push origin HEAD:${GIT_BRANCH} || true
-
-                echo "✓ Valores actualizados"
+                git add "${HELM_FILE}"
+                if git commit -m "CI: Update pod annotation with commit ${COMMIT_SHORT}"; then
+                    echo "Pushing cambios..."
+                    # Jenkins ya tiene credenciales configuradas, intentar push
+                    git push origin develop 2>&1 || true
+                    echo "✓ Commit completado"
+                else
+                    echo "No hay cambios para hacer commit"
+                fi
                 '''
             }
         }
