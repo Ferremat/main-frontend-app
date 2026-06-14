@@ -1,15 +1,7 @@
-// ─────────────────────────────────────────────
-// Frontend App Config
-// ─────────────────────────────────────────────
-def DOCKER_REPO = 'iferlop/main-frontend-app'
-def NAMESPACE = 'ferremat-deploy'
-def DOCKER_USER = 'iferlop'
-
-// ─────────────────────────────────────────────
-// Kaniko Pod
-// ─────────────────────────────────────────────
-def getKanikoPod() {
-    return """
+pipeline {
+    agent {
+        kubernetes {
+            yaml """
 apiVersion: v1
 kind: Pod
 spec:
@@ -17,159 +9,115 @@ spec:
   containers:
   - name: kaniko
     image: gcr.io/kaniko-project/executor:debug
-    command: ["/busybox/cat"]
-    tty: true
-    resources:
-      requests:
-        memory: "1Gi"
-        cpu: "500m"
-      limits:
-        memory: "2Gi"
-        cpu: "1500m"
+    command:
+    - sleep
+    args:
+    - 99999
     volumeMounts:
-    - name: kaniko-secret
-      mountPath: /kaniko/.docker/config.json
-      subPath: .dockerconfigjson
-    - name: kaniko-cache
-      mountPath: /workspace/cache
-    env:
-    - name: DOCKER_CONFIG
-      value: /kaniko/.docker
+    - name: docker-secret
+      mountPath: /kaniko/.docker
   volumes:
-  - name: kaniko-secret
+  - name: docker-secret
     secret:
       secretName: dockerhub-secret
       items:
       - key: .dockerconfigjson
-        path: .dockerconfigjson
-  - name: kaniko-cache
-    persistentVolumeClaim:
-      claimName: kaniko-cache-pvc
-  nodeSelector:
-    kubernetes.io/os: linux
-  restartPolicy: Never
+        path: config.json
 """
-}
-
-// ─────────────────────────────────────────────
-// Tools Pod (kubectl)
-// ─────────────────────────────────────────────
-def getToolsPod() {
-    return """
-apiVersion: v1
-kind: Pod
-spec:
-  serviceAccountName: jenkins
-  containers:
-  - name: tools
-    image: alpine/k8s:1.29.2
-    command: ["cat"]
-    tty: true
-    resources:
-      requests:
-        memory: "128Mi"
-        cpu: "100m"
-      limits:
-        memory: "256Mi"
-        cpu: "200m"
-  nodeSelector:
-    kubernetes.io/os: linux
-  restartPolicy: Never
-"""
-}
-
-// ─────────────────────────────────────────────
-// Pipeline
-// ─────────────────────────────────────────────
-pipeline {
-    agent none
+        }
+    }
 
     environment {
-        COMMIT_HASH = sh(script: "git rev-parse --short HEAD", returnStdout: true).trim()
+        DOCKER_REPO = 'iferlop/main-frontend-app'
+        DOCKER_IMAGE_TAG = "${BUILD_NUMBER}-${GIT_COMMIT.take(7)}"
+    }
+
+    options {
+        timestamps()
+        timeout(time: 1, unit: 'HOURS')
+        buildDiscarder(logRotator(numToKeepStr: '10'))
     }
 
     stages {
+        stage('Debug Info') {
+            steps {
+                echo "========== DEBUG INFO =========="
+                echo "Workspace: ${WORKSPACE}"
+                echo "Build Number: ${BUILD_NUMBER}"
+                echo "Git Commit: ${GIT_COMMIT}"
+                echo "Git Branch: ${GIT_BRANCH}"
+                echo "Docker Repo: ${DOCKER_REPO}"
+                echo "Image Tag: ${DOCKER_IMAGE_TAG}"
+                sh 'echo "Context: $(pwd)" && ls -la'
+                echo "=============================="
+            }
+        }
 
         stage('Checkout') {
-            agent {
-                kubernetes {
-                    yaml getKanikoPod()
-                }
-            }
             steps {
+                echo "📥 Clonando repositorio..."
                 checkout scm
-                script {
-                    echo "✓ Checkout completado"
-                    echo "  Commit: ${GIT_COMMIT}"
-                    echo "  Branch: ${GIT_BRANCH}"
-                }
+                sh 'echo "Checkout completado"; ls -la | head -20'
             }
         }
 
-        stage('Build & Push Image') {
-            agent {
-                kubernetes {
-                    yaml getKanikoPod()
-                }
+        stage('Verify Dockerfile') {
+            steps {
+                echo "🔍 Verificando Dockerfile..."
+                sh '''
+                    if [ -f Dockerfile ]; then
+                        echo "✓ Dockerfile encontrado"
+                        head -10 Dockerfile
+                    else
+                        echo "❌ ERROR: Dockerfile NO encontrado"
+                        echo "Contenido actual:"
+                        ls -la
+                        exit 1
+                    fi
+                '''
             }
+        }
+
+        stage('Build Image') {
             steps {
                 container('kaniko') {
-                    script {
-                        echo "🚀 Construyendo imagen Docker..."
-                        echo "  Repo: ${DOCKER_REPO}"
-                        echo "  Dockerfile: Dockerfile"
-                        echo "  Context: $(pwd)"
+                    echo "🚀 Construyendo imagen Docker..."
+                    sh """
+                        echo "Verificando credenciales..."
+                        ls -la /kaniko/.docker/
 
-                        sh '''
-                            set -x
-                            /kaniko/executor \
-                                --context $(pwd) \
-                                --dockerfile Dockerfile \
-                                --destination ${DOCKER_REPO}:${GIT_COMMIT} \
-                                --destination ${DOCKER_REPO}:latest \
-                                --cache=true \
-                                --cache-dir=/workspace/cache \
-                                --cache-ttl=168h
-                        '''
-
-                        echo "✓ Imagen publicada:"
-                        echo "  - ${DOCKER_REPO}:${GIT_COMMIT}"
-                        echo "  - ${DOCKER_REPO}:latest"
-                    }
+                        echo "Iniciando Kaniko executor..."
+                        /kaniko/executor \\
+                            --dockerfile Dockerfile \\
+                            --context . \\
+                            --destination ${DOCKER_REPO}:${DOCKER_IMAGE_TAG} \\
+                            --destination ${DOCKER_REPO}:latest \\
+                            --cache=true \\
+                            --cache-ttl=24h \\
+                            -v info
+                    """
                 }
             }
         }
 
-        stage('Restart Deployment') {
-            agent {
-                kubernetes {
-                    yaml getToolsPod()
-                }
-            }
+        stage('Verify Image') {
             steps {
-                container('tools') {
-                    script {
-                        echo "🔄 Reiniciando deployment..."
-                        sh '''
-                            kubectl rollout restart deployment/main-frontend-app -n ${NAMESPACE} || true
-                            sleep 3
-                            kubectl rollout status deployment/main-frontend-app -n ${NAMESPACE} --timeout=300s || true
-                            echo "✓ Deployment reiniciado"
-                        '''
-                    }
-                }
+                echo "✓ Imagen construida exitosamente:"
+                echo "  - ${DOCKER_REPO}:${DOCKER_IMAGE_TAG}"
+                echo "  - ${DOCKER_REPO}:latest"
             }
         }
-
     }
 
     post {
+        always {
+            echo "Pipeline finalizado"
+        }
         success {
-            echo "✅ Pipeline exitoso"
+            echo "✅ BUILD EXITOSO"
         }
         failure {
-            echo "❌ Pipeline falló - revisa los logs arriba"
+            echo "❌ BUILD FALLIDO - Revisa los logs arriba para detalles"
         }
     }
-
 }
