@@ -119,10 +119,7 @@ spec:
                 echo "Archivo: ${HELM_FILE}"
 
                 # Usar awk para reemplazar la línea de restartedAt
-                awk -v commit="${COMMIT_SHORT}" '
-                  /restartedAt:/ { print "    restartedAt: \"" commit "\""; next }
-                  { print }
-                ' "${HELM_FILE}" > "${HELM_FILE}.tmp" && mv "${HELM_FILE}.tmp" "${HELM_FILE}"
+                awk -v commit="${COMMIT_SHORT}" '/restartedAt:/ { print "    restartedAt: \"" commit "\""; next } { print }' "${HELM_FILE}" > "${HELM_FILE}.tmp" && mv "${HELM_FILE}.tmp" "${HELM_FILE}"
 
                 # Mostrar el cambio
                 echo "Contenido actualizado:"
@@ -136,8 +133,10 @@ spec:
                 git add "${HELM_FILE}"
                 if git commit -m "CI: Update pod annotation with commit ${COMMIT_SHORT}"; then
                     echo "Pushing cambios..."
-                    # Jenkins ya tiene credenciales configuradas, intentar push
-                    git push origin develop 2>&1 || true
+                    # Push directo desde el HEAD (estamos en detached HEAD después del commit)
+                    git push https://github.com/Ferremat/main-frontend-app.git HEAD:refs/heads/develop 2>&1 || \
+                    git push origin HEAD:develop 2>&1 || \
+                    echo "⚠ Push falló - continuando"
                     echo "✓ Commit completado"
                 else
                     echo "No hay cambios para hacer commit"
