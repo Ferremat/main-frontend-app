@@ -106,41 +106,33 @@ spec:
             }
             steps {
                 container('kubectl') {
-                    script {
-                        sh """
+                    sh '''
                         set -e
-
-                        echo "🚀 Desplegando a Kubernetes..."
-                        echo "Namespace: ${NAMESPACE}"
-                        echo "Deployment: ${APP_NAME}"
-                        echo "Imagen: ${DOCKER_USER}/${APP_NAME}:${IMAGE_TAG}"
+                        echo "Desplegando a Kubernetes..."
+                        echo "Namespace: ''' + "${NAMESPACE}" + '''"
+                        echo "Deployment: ''' + "${APP_NAME}" + '''"
+                        echo "Imagen: ''' + "${DOCKER_USER}/${APP_NAME}:${IMAGE_TAG}" + '''"
 
                         # Actualizar la imagen en el deployment
-                        echo "📦 Actualizando imagen..."
-                        kubectl set image deployment/${APP_NAME} \\
-                            ${APP_NAME}=${DOCKER_USER}/${APP_NAME}:${IMAGE_TAG} \\
-                            -n ${NAMESPACE} \\
-                            --record || echo "⚠️ Deployment no encontrado, continuando..."
+                        echo "Actualizando imagen..."
+                        kubectl set image deployment/''' + "${APP_NAME}" + ''' \\
+                            ''' + "${APP_NAME}" + '''=''' + "${DOCKER_USER}/${APP_NAME}:${IMAGE_TAG}" + ''' \\
+                            -n ''' + "${NAMESPACE}" + ''' \\
+                            --record || echo "Deployment no encontrado, continuando..."
 
                         # Esperar a que el rollout se complete
-                        echo "⏳ Esperando rollout..."
-                        kubectl rollout status deployment/${APP_NAME} \\
-                            -n ${NAMESPACE} \\
-                            --timeout=10m || echo "⚠️ Timeout en rollout"
+                        echo "Esperando rollout..."
+                        kubectl rollout status deployment/''' + "${APP_NAME}" + ''' \\
+                            -n ''' + "${NAMESPACE}" + ''' \\
+                            --timeout=10m || echo "Timeout en rollout"
 
-                        # Mostrar status
-                        echo "✅ Status actual del deployment:"
-                        kubectl get deployment ${APP_NAME} -n ${NAMESPACE} -o wide
+                        echo "Status actual del deployment:"
+                        kubectl get deployment ''' + "${APP_NAME}" + ''' -n ''' + "${NAMESPACE}" + ''' -o wide
 
                         echo ""
                         echo "Pods activos:"
-                        kubectl get pods -n ${NAMESPACE} -l app=${APP_NAME} -o wide
-
-                        echo ""
-                        echo "Imagen activa:"
-                        kubectl get pods -n ${NAMESPACE} -l app=${APP_NAME} -o jsonpath='{.items[0].spec.containers[0].image}'
-                        """
-                    }
+                        kubectl get pods -n ''' + "${NAMESPACE}" + ''' -l app=''' + "${APP_NAME}" + ''' -o wide
+                    '''
                 }
             }
         }
@@ -212,40 +204,32 @@ spec:
     }
 
     post {
-        success {
+        always {
             script {
-                sh '''
-                echo "================================================"
-                echo "✅ PIPELINE COMPLETADO EXITOSAMENTE"
-                echo "================================================"
-                echo "Aplicación: ${APP_NAME}"
-                echo "Imagen: ${DOCKER_USER}/${APP_NAME}:${IMAGE_TAG}"
-                echo "Namespace: ${NAMESPACE}"
-                echo ""
-                echo "✓ Imagen construida y subida a Docker Hub"
-                echo "✓ Deployment actualizado en Kubernetes"
-                echo "✓ values.yaml actualizado en Git"
-                echo "✓ ArgoCD sincronizará los cambios automáticamente"
-                echo ""
-                echo "Build #${BUILD_NUMBER} completado en ${currentBuild.durationString}"
-                echo "================================================"
-                '''
+                if (currentBuild.result == 'SUCCESS') {
+                    echo "================================================"
+                    echo "Pipeline completado exitosamente"
+                    echo "================================================"
+                    echo "Aplicación: ${APP_NAME}"
+                    echo "Imagen: ${DOCKER_USER}/${APP_NAME}:${IMAGE_TAG}"
+                    echo "Namespace: ${NAMESPACE}"
+                    echo ""
+                    echo "Imagen construida y subida a Docker Hub"
+                    echo "Deployment actualizado en Kubernetes"
+                    echo "values.yaml actualizado en Git"
+                    echo "ArgoCD sincronizará los cambios automáticamente"
+                    echo ""
+                    echo "Build #${BUILD_NUMBER} completado"
+                    echo "================================================"
+                } else {
+                    echo "================================================"
+                    echo "PIPELINE FALLO"
+                    echo "================================================"
+                    echo "Build #${BUILD_NUMBER} fallo"
+                    echo "Revisa los logs arriba para mas detalles"
+                    echo "================================================"
+                }
             }
-        }
-        failure {
-            script {
-                sh '''
-                echo "================================================"
-                echo "❌ PIPELINE FALLÓ"
-                echo "================================================"
-                echo "Build #${BUILD_NUMBER} falló"
-                echo "Revisa los logs arriba para más detalles"
-                echo "================================================"
-                '''
-            }
-        }
-        unstable {
-            echo "⚠️ Pipeline completado con advertencias"
         }
     }
 }
