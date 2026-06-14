@@ -107,49 +107,35 @@ spec:
             }
         }
 
-        stage('Restart Deployment') {
-            agent {
-                kubernetes {
-                    yaml """
-apiVersion: v1
-kind: Pod
-spec:
-  serviceAccountName: jenkins
-  containers:
-  - name: kubectl
-    image: alpine/k8s:1.29.2
-    command: ["cat"]
-    tty: true
-    resources:
-      requests:
-        memory: "128Mi"
-        cpu: "100m"
-      limits:
-        memory: "256Mi"
-        cpu: "200m"
-  nodeSelector:
-    kubernetes.io/os: linux
-  restartPolicy: Never
-"""
-                }
-            }
+        stage('Update Helm Values') {
             steps {
-                container('kubectl') {
-                    sh '''
-                    echo "🔄 Forzando actualización de deployment..."
+                echo "📝 Actualizando valores de Helm..."
+                sh '''
+                # Obtener los primeros 7 caracteres del commit
+                COMMIT_SHORT=$(echo ${GIT_COMMIT} | cut -c1-7)
 
-                    # Patch del deployment con timestamp para forzar rollout
-                    TIMESTAMP=$(date +%s)
-                    kubectl patch deployment main-frontend-app-deployment -n ferremat-deploy \
-                      --type='json' -p='[{"op":"replace","path":"/spec/template/metadata/annotations/restartedAt","value":"'$TIMESTAMP'"}]' || true
+                # Actualizar el values.yaml con el hash del commit
+                sed -i "s/restartedAt: .*/restartedAt: \"${COMMIT_SHORT}\"/" \
+                  deploy/kubernetes/charts/main-frontend-app/values.yaml
 
-                    echo "⏳ Esperando rollout..."
-                    sleep 3
-                    kubectl rollout status deployment/main-frontend-app-deployment -n ferremat-deploy --timeout=300s || true
+                # Configurar git
+                git config user.email "jenkins@ferremat.es"
+                git config user.name "Jenkins CI"
 
-                    echo "✓ Deployment actualizado"
-                    '''
-                }
+                # Commit y push
+                git add deploy/kubernetes/charts/main-frontend-app/values.yaml
+                git commit -m "CI: Update pod annotation with commit ${COMMIT_SHORT}" || true
+                git push origin HEAD:${GIT_BRANCH} || true
+
+                echo "✓ Valores actualizados"
+                '''
+            }
+        }
+
+        stage('Sync ArgoCD') {
+            steps {
+                echo "🔄 ArgoCD sincronizará automáticamente los cambios en valores.yaml"
+                echo "✓ Pipeline completado - Espera a que Argo aplique los cambios"
             }
         }
     }
