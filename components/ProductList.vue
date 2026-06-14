@@ -5,29 +5,23 @@ const { lang, theme } = useSettings();
 const { fetchProducts } = useApi();
 const route = useRoute();
 
-const products = ref<any[]>([]);
-const loading = ref(true);
-const error = ref<string | null>(null);
-
-onMounted(async () => {
-  try {
-    const data = await fetchProducts();
-    products.value = data;
-  } catch {
-    error.value = lang.value === 'es'
-      ? 'No se pudieron cargar los productos. Intenta de nuevo más tarde.'
-      : 'Products could not be loaded. Please try again later.';
-  } finally {
-    loading.value = false;
+const { data: products, pending: loading, error: fetchError } = useAsyncData(
+  'products',
+  async () => {
+    try {
+      return await fetchProducts();
+    } catch (err: any) {
+      console.error('Error fetching products:', err);
+      throw new Error(err?.message || 'Failed to load products');
+    }
   }
-});
+);
 
-watch(lang, (l) => {
-  if (error.value) {
-    error.value = l === 'es'
-      ? 'No se pudieron cargar los productos. Intenta de nuevo más tarde.'
-      : 'Products could not be loaded. Please try again later.';
-  }
+const error = computed(() => {
+  if (!fetchError.value) return null;
+  return lang.value === 'es'
+    ? 'No se pudieron cargar los productos. Intenta de nuevo más tarde.'
+    : 'Products could not be loaded. Please try again later.';
 });
 
 const searchQuery = computed(() => (route.query.search as string) || '');
