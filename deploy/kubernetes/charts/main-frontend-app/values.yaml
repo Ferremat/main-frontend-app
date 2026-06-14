@@ -11,7 +11,7 @@ app:
     Port: 3000
     replicas: 1
   podAnnotations:
-    restartedAt: "e10eff6"
+    restartedAt: "commit"
 
 service:
   type: ClusterIP
