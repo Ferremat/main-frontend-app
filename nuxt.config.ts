@@ -99,14 +99,16 @@ export default defineNuxtConfig({
     '/politicas': { prerender: true },
     '/carrito': { swr: 3600 },
     '/login': { swr: 3600 },
-    '/productos/**': { swr: 3600 }, // Product detail pages — SWR para evitar SSR issues
+    '/productos/**': { swr: 3600 },
   },
 
-  // Compression
+  // Compression & Prerendering
   nitro: {
     prerender: {
-      crawlLinks: true,
-      routes: ['/sitemap.xml', '/robots.txt'],
+      crawlLinks: false,
+      routes: ['/', '/conocenos', '/contactanos', '/politicas', '/sitemap.xml', '/robots.txt'],
+      ignore: ['/carrito', '/login'],
     },
+    minify: true,
   },
 })
