@@ -2,18 +2,16 @@
 const { fetchCategories } = useApi();
 const { lang, theme } = useSettings();
 
-const categories = ref<{ id: string; name: string }[]>([]);
-const loading = ref(true);
-
-onMounted(async () => {
-  try {
-    categories.value = await fetchCategories();
-  } catch {
-    // silent fail
-  } finally {
-    loading.value = false;
+const { data: categories, pending: loading } = useAsyncData(
+  'categories',
+  async () => {
+    try {
+      return await fetchCategories();
+    } catch {
+      return [];
+    }
   }
-});
+);
 
 const sectionTitle = computed(() =>
   lang.value === 'es' ? 'Categorías principales' : 'Main categories'
