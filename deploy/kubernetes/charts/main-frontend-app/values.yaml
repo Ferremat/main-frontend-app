@@ -25,4 +25,4 @@ ingress:
   pathType: Prefix
 
 env:
-  NUXT_PUBLIC_API_URL: "http://api.ferremat.es/"
+  NUXT_PUBLIC_API_URL: "https://api.ferremat.es/"
