@@ -137,11 +137,11 @@ spec:
                 container('kubectl') {
                     sh '''
                     echo "🔄 Reiniciando deployment..."
-                    kubectl rollout restart deployment/main-frontend-app -n ferremat-deploy || true
+                    kubectl rollout restart deployment/main-frontend-app-deployment -n ferremat-deploy || true
 
                     echo "⏳ Esperando rollout..."
                     sleep 3
-                    kubectl rollout status deployment/main-frontend-app -n ferremat-deploy --timeout=300s || true
+                    kubectl rollout status deployment/main-frontend-app-deployment -n ferremat-deploy --timeout=300s || true
 
                     echo "✓ Deployment reiniciado"
                     '''
