@@ -139,8 +139,9 @@ spec:
                     echo "🔄 Forzando actualización de deployment..."
 
                     # Patch del deployment con timestamp para forzar rollout
+                    TIMESTAMP=$(date +%s)
                     kubectl patch deployment main-frontend-app-deployment -n ferremat-deploy \
-                      -p "{\"spec\":{\"template\":{\"metadata\":{\"annotations\":{\"restartedAt\":\"$(date +'%s')\"}}}}}}" || true
+                      --type='json' -p='[{"op":"replace","path":"/spec/template/metadata/annotations/restartedAt","value":"'$TIMESTAMP'"}]' || true
 
                     echo "⏳ Esperando rollout..."
                     sleep 3
