@@ -135,6 +135,11 @@ pipeline {
         // ── 2. Build & Push secuencial ────────────
         stage('Build & Push') {
             when { expression { env.APPS_UPDATED != '' && env.APPS_UPDATED != null } }
+            agent {
+                kubernetes {
+                    yaml getKanikoPod()
+                }
+            }
             steps {
                 script {
                     def appsList = env.APPS_UPDATED.split(',')
@@ -146,35 +151,24 @@ pipeline {
 
                         echo "🚀 Construyendo ${appName} (${i+1}/${appsList.size()})"
 
-                        podTemplate(yaml: getKanikoPod()) {
-                            node(POD_LABEL) {
-                                checkout scm
-                                container('kaniko') {
-                                    stage("Build ${appName}") {
-                                        sh """
-                                        /kaniko/executor \\
-                                            --context \$(pwd) \\
-                                            --dockerfile Dockerfile \\
-                                            --destination ${dockerRepo}:${commitHash} \\
-                                            --destination ${dockerRepo}:latest \\
-                                            --cache=false \\
-                                            --cache-dir=/workspace/cache \\
-                                            --cache-ttl=168h \\
-                                            --cache-repo="" \\
-                                            --no-push-cache
-                                        """
-                                    }
-                                }
-                            }
+                        checkout scm
+                        container('kaniko') {
+                            sh """
+                            /kaniko/executor \\
+                                --context \$(pwd) \\
+                                --dockerfile Dockerfile \\
+                                --destination ${dockerRepo}:${commitHash} \\
+                                --destination ${dockerRepo}:latest \\
+                                --cache=true \\
+                                --cache-dir=/workspace/cache \\
+                                --cache-ttl=168h \\
+                                --cache-repo="" \\
+                                --no-push-cache
+                            """
                         }
                     }
                 }
             }
-            // NOTA: este stage necesita un agent. Al usar podTemplate dinámico
-            // dentro de steps/script, Jenkins lo gestiona internamente,
-            // pero el stage padre necesita 'agent none' o un agent propio.
-            // Aquí se pone none para que cada pod efímero sea el agente real.
-            // Si Jenkins lo rechaza, añade: agent { kubernetes { yaml getKanikoPod() } }
         }
 
         // ── 3. Restart Deployments ────────────────
