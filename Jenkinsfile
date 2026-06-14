@@ -102,6 +102,20 @@ pipeline {
                         currentBuild.result = 'SUCCESS'
                         return
                     }
+
+                    // Revisar si hay cambios reales (no solo en values.yaml o docs)
+                    def hasRealChanges = sh(
+                        script: '''
+                        git diff --name-only HEAD~1 HEAD 2>/dev/null | grep -v "values.yaml" | grep -v ".md" | grep -v "README" || exit 1
+                        ''',
+                        returnStatus: true
+                    ) == 0
+
+                    if (!hasRealChanges && env.BUILD_NUMBER != '1') {
+                        echo "⏭️ Saltando build - solo cambios en values.yaml o docs"
+                        currentBuild.result = 'SUCCESS'
+                        return
+                    }
                 }
                 container('kaniko') {
                     script {
