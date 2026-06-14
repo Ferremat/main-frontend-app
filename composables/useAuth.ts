@@ -1,4 +1,5 @@
 // Composable de autenticación global — estado compartido entre todos los componentes
+import { useCart } from './useCart';
 
 export interface AuthUser {
   name: string;
@@ -29,15 +30,23 @@ export function useAuth() {
       .toUpperCase() ?? ''
   );
 
-  function login(userData: AuthUser) {
+  function login(userData: AuthUser, isNewUser: boolean = false) {
     user.value = userData;
     if (import.meta.client) {
       localStorage.setItem('ferremat-user', JSON.stringify(userData));
+      // Marcar si es usuario nuevo para mostrar el tour
+      if (isNewUser) {
+        localStorage.removeItem('ferremat-tour-completed');
+      }
     }
   }
 
   function logout() {
+    const { clearCart } = useCart();
+
     user.value = null;
+    clearCart();
+
     if (import.meta.client) {
       localStorage.removeItem('ferremat-user');
     }

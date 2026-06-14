@@ -1,4 +1,5 @@
 // Composable centralizado para llamadas a la API de Ferremat
+import { useErrorHandler } from './useErrorHandler';
 
 export interface Category {
   id: string
@@ -19,26 +20,42 @@ export interface Product {
 export const useApi = () => {
   const config = useRuntimeConfig()
   const baseUrl = config.public.apiUrl as string
+  const { handleError } = useErrorHandler()
 
   const fetchProducts = async (): Promise<Product[]> => {
-    const data = await $fetch<Product[]>(`${baseUrl}products/list_products`)
-    return data
+    try {
+      const data = await $fetch<Product[]>(`${baseUrl}products/list_products`)
+      return data
+    } catch (error) {
+      handleError(error, { context: 'fetchProducts', showNotification: true });
+      throw error;
+    }
   }
 
   const fetchProductById = async (id: string): Promise<Product> => {
-    if (!id || id === 'undefined') {
-      throw new Error('ID de producto inválido');
+    try {
+      if (!id || id === 'undefined') {
+        throw new Error('ID de producto inválido');
+      }
+      const data = await $fetch<Product>(`${baseUrl}products/${id}`)
+      if (!data || typeof data !== 'object') {
+        throw new Error('Respuesta de servidor inválida');
+      }
+      return data
+    } catch (error) {
+      handleError(error, { context: `fetchProductById(${id})`, showNotification: true });
+      throw error;
     }
-    const data = await $fetch<Product>(`${baseUrl}products/${id}`)
-    if (!data || typeof data !== 'object') {
-      throw new Error('Respuesta de servidor inválida');
-    }
-    return data
   }
 
   const fetchCategories = async (): Promise<Category[]> => {
-    const data = await $fetch<Category[]>(`${baseUrl}products/list_categories`)
-    return data
+    try {
+      const data = await $fetch<Category[]>(`${baseUrl}products/list_categories`)
+      return data
+    } catch (error) {
+      handleError(error, { context: 'fetchCategories', showNotification: true });
+      throw error;
+    }
   }
 
   return {
