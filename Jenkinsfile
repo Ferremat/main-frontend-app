@@ -136,14 +136,14 @@ spec:
             steps {
                 container('kubectl') {
                     sh '''
-                    echo "🔄 Reiniciando deployment..."
-                    kubectl rollout restart deployment/main-frontend-app-deployment -n ferremat-deploy || true
+                    echo "🔄 Forzando actualización de pods..."
+                    kubectl delete pods -l app=main-frontend-app -n ferremat-deploy --grace-period=30 || true
 
-                    echo "⏳ Esperando rollout..."
-                    sleep 3
+                    echo "⏳ Esperando a que se creen nuevos pods..."
+                    sleep 5
                     kubectl rollout status deployment/main-frontend-app-deployment -n ferremat-deploy --timeout=300s || true
 
-                    echo "✓ Deployment reiniciado"
+                    echo "✓ Pods actualizados"
                     '''
                 }
             }
