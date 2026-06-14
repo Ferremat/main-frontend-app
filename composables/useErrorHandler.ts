@@ -10,10 +10,9 @@ interface ErrorNotification {
   duration?: number;
 }
 
-const notificationStack = useState<ErrorNotification[]>('error-notifications', () => []);
-
 export function useErrorHandler() {
   const router = useRouter();
+  const notificationStack = useState<ErrorNotification[]>('error-notifications', () => []);
 
   function handleError(
     error: any,
