@@ -23,15 +23,21 @@ const { addItem } = useCart();
 const { isLoggedIn } = useAuth();
 const { fetchProductById, fetchProducts } = useApi();
 
-const product  = ref<Product | null>(null);
-const loading  = ref(true);
-const error    = ref<string | null>(null);
 const quantity = ref(1);
-const added    = ref(false); // feedback tras añadir al carrito
+const added    = ref(false);
 
-// ── Fetch ────────────────────────────────────────────────────────────────────
-onMounted(async () => {
-  try {
+// Helper: generar slug desde nombre
+const generateSlug = (name: string) =>
+  name
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, '-')
+    .replace(/[^\w-]/g, '');
+
+// ── Fetch con useAsyncData (SSR compatible) ────────────────────────────────────
+const { data: product, pending: loading, error: fetchError } = useAsyncData(
+  'product',
+  async () => {
     const slug = route.params.id as string;
     const idFromQuery = (route.query.id as string) || null;
 
@@ -46,7 +52,6 @@ onMounted(async () => {
       try {
         fetchedProduct = await fetchProductById(idFromQuery);
       } catch {
-        // Si falla, intenta por slug
         fetchedProduct = null;
       }
     }
@@ -54,29 +59,25 @@ onMounted(async () => {
     // Si no hay producto y hay slug, busca en todos los productos
     if (!fetchedProduct && slug) {
       const allProducts = await fetchProducts();
-      const slugNormalized = slug.toLowerCase().replace(/[^\w-]/g, '');
-      fetchedProduct = allProducts.find(p =>
-        p.name
-          .toLowerCase()
-          .trim()
-          .replace(/\s+/g, '-')
-          .replace(/[^\w-]/g, '') === slugNormalized
-      ) || null;
+      const slugNormalized = generateSlug(slug);
+      fetchedProduct = allProducts.find(p => generateSlug(p.name) === slugNormalized) || null;
     }
 
     if (!fetchedProduct) {
       throw new Error('Product not found');
     }
 
-    product.value = fetchedProduct;
-  } catch (err) {
-    const errorMessage = err instanceof Error ? err.message : '';
-    error.value = lang.value === 'es'
-      ? (errorMessage.includes('not found') ? 'Producto no encontrado.' : 'No se pudo cargar el producto.')
-      : (errorMessage.includes('not found') ? 'Product not found.' : 'Product could not be loaded.');
-  } finally {
-    loading.value = false;
-  }
+    return fetchedProduct;
+  },
+  { watch: [() => route.params.id, () => route.query.id] }
+);
+
+const error = computed(() => {
+  if (!fetchError.value) return null;
+  const errorMessage = fetchError.value instanceof Error ? fetchError.value.message : '';
+  return lang.value === 'es'
+    ? (errorMessage.includes('not found') ? 'Producto no encontrado.' : 'No se pudo cargar el producto.')
+    : (errorMessage.includes('not found') ? 'Product not found.' : 'Product could not be loaded.');
 });
 
 // ── Computed helpers ─────────────────────────────────────────────────────────
