@@ -59,7 +59,7 @@ spec:
                 checkout scm
                 container('kaniko') {
                     script {
-                        env.IMAGE_TAG = "${env.BUILD_NUMBER}-${env.GIT_COMMIT.take(7)}"
+                        env.IMAGE_TAG = env.GIT_COMMIT.take(7)
                     }
                     sh """
                     set -e
