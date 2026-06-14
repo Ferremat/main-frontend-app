@@ -108,16 +108,39 @@ spec:
         }
 
         stage('Restart Deployment') {
+            agent {
+                kubernetes {
+                    yaml """
+apiVersion: v1
+kind: Pod
+spec:
+  serviceAccountName: jenkins
+  containers:
+  - name: kubectl
+    image: alpine/k8s:1.29.2
+    command: ["cat"]
+    tty: true
+    resources:
+      requests:
+        memory: "128Mi"
+        cpu: "100m"
+      limits:
+        memory: "256Mi"
+        cpu: "200m"
+  nodeSelector:
+    kubernetes.io/os: linux
+  restartPolicy: Never
+"""
+                }
+            }
             steps {
-                container('kaniko') {
+                container('kubectl') {
                     sh '''
-                    echo "⏳ Esperando a que Kubernetes esté disponible..."
-                    sleep 5
-
                     echo "🔄 Reiniciando deployment..."
                     kubectl rollout restart deployment/main-frontend-app -n ferremat-deploy || true
 
                     echo "⏳ Esperando rollout..."
+                    sleep 3
                     kubectl rollout status deployment/main-frontend-app -n ferremat-deploy --timeout=300s || true
 
                     echo "✓ Deployment reiniciado"
