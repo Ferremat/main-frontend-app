@@ -17,11 +17,12 @@ spec:
     - name: docker-secret
       mountPath: /kaniko/.docker
   - name: kubectl
-    image: bitnami/kubectl:latest
+    image: alpine:latest
     command:
-    - sleep
+    - sh
     args:
-    - 99999
+    - -c
+    - apk add --no-cache kubectl && sleep 99999
   volumes:
   - name: docker-secret
     secret:
