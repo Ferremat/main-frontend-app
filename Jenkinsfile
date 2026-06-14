@@ -106,6 +106,25 @@ spec:
                 echo "  - ${DOCKER_REPO}:latest"
             }
         }
+
+        stage('Restart Deployment') {
+            steps {
+                container('kaniko') {
+                    sh '''
+                    echo "⏳ Esperando a que Kubernetes esté disponible..."
+                    sleep 5
+
+                    echo "🔄 Reiniciando deployment..."
+                    kubectl rollout restart deployment/main-frontend-app -n ferremat-deploy || true
+
+                    echo "⏳ Esperando rollout..."
+                    kubectl rollout status deployment/main-frontend-app -n ferremat-deploy --timeout=300s || true
+
+                    echo "✓ Deployment reiniciado"
+                    '''
+                }
+            }
+        }
     }
 
     post {
