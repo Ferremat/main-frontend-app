@@ -69,7 +69,7 @@ pipeline {
     agent none
 
     triggers {
-        githubPush()
+        pollSCM('H/5 * * * *') // Revisa cada 5 minutos
     }
 
     environment {
