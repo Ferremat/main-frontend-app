@@ -38,7 +38,7 @@ const generateSlug = (name: string) =>
 const { data: product, pending: loading, error: fetchError } = useAsyncData(
   'product',
   async () => {
-    const slug = route.params.id as string;
+    const slug = route.params.slug as string;
     const idFromQuery = (route.query.id as string) || null;
 
     if (!slug && !idFromQuery) {
@@ -69,7 +69,7 @@ const { data: product, pending: loading, error: fetchError } = useAsyncData(
 
     return fetchedProduct;
   },
-  { watch: [() => route.params.id, () => route.query.id] }
+  { watch: [() => route.params.slug, () => route.query.id] }
 );
 
 const error = computed(() => {
