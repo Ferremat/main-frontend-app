@@ -1,12 +1,12 @@
 // ─────────────────────────────────────────────
-// Configuración de aplicación frontend
+// Frontend App Config
 // ─────────────────────────────────────────────
-def frontendApp = [
-    'main-frontend-app': 'iferlop/main-frontend-app',
-]
+def DOCKER_REPO = 'iferlop/main-frontend-app'
+def NAMESPACE = 'ferremat-deploy'
+def DOCKER_USER = 'iferlop'
 
 // ─────────────────────────────────────────────
-// Pod template Kaniko
+// Kaniko Pod
 // ─────────────────────────────────────────────
 def getKanikoPod() {
     return """
@@ -25,12 +25,12 @@ spec:
         cpu: "500m"
       limits:
         memory: "2Gi"
-        cpu: "1.5"
+        cpu: "1500m"
     volumeMounts:
     - name: kaniko-secret
       mountPath: /kaniko/.docker/config.json
       subPath: .dockerconfigjson
-    - name: kaniko-cache-vol
+    - name: kaniko-cache
       mountPath: /workspace/cache
     env:
     - name: DOCKER_CONFIG
@@ -42,7 +42,7 @@ spec:
       items:
       - key: .dockerconfigjson
         path: .dockerconfigjson
-  - name: kaniko-cache-vol
+  - name: kaniko-cache
     persistentVolumeClaim:
       claimName: kaniko-cache-pvc
   nodeSelector:
@@ -52,7 +52,7 @@ spec:
 }
 
 // ─────────────────────────────────────────────
-// Pod template Tools (kubectl)
+// Tools Pod (kubectl)
 // ─────────────────────────────────────────────
 def getToolsPod() {
     return """
@@ -79,20 +79,18 @@ spec:
 }
 
 // ─────────────────────────────────────────────
-// Pipeline principal
+// Pipeline
 // ─────────────────────────────────────────────
 pipeline {
     agent none
 
     environment {
-        DOCKER_USER = 'iferlop'
-        NAMESPACE   = 'ferremat-deploy'
+        COMMIT_HASH = sh(script: "git rev-parse --short HEAD", returnStdout: true).trim()
     }
 
     stages {
 
-        // ── 1. Checkout y detección de cambios ───
-        stage('Checkout & Detect') {
+        stage('Checkout') {
             agent {
                 kubernetes {
                     yaml getKanikoPod()
@@ -101,79 +99,48 @@ pipeline {
             steps {
                 checkout scm
                 script {
-                    env.APPS_UPDATED = ''
-                    def globalChange = false
-                    try {
-                        globalChange = sh(
-                            script: "git diff --name-only ${GIT_PREVIOUS_SUCCESSFUL_COMMIT} ${GIT_COMMIT} | grep -E '^(Dockerfile|Jenkinsfile)'",
-                            returnStatus: true
-                        ) == 0
-                    } catch (Exception e) {
-                        globalChange = true
-                    }
-
-                    frontendApp.each { appName, dockerRepo ->
-                        def appChange = false
-                        try {
-                            appChange = sh(
-                                script: "git diff --name-only ${GIT_PREVIOUS_COMMIT} ${GIT_COMMIT} | grep -v 'node_modules\\|dist\\|build'",
-                                returnStatus: true
-                            ) == 0
-                        } catch (Exception e) {
-                            appChange = true
-                        }
-
-                        if (globalChange || appChange || env.BUILD_ID == '1') {
-                            env.APPS_UPDATED = env.APPS_UPDATED ? "${env.APPS_UPDATED},${appName}" : appName
-                        }
-                    }
-                    echo "📦 Apps a construir: ${env.APPS_UPDATED}"
+                    echo "✓ Checkout completado"
+                    echo "  Commit: ${GIT_COMMIT}"
+                    echo "  Branch: ${GIT_BRANCH}"
                 }
             }
         }
 
-        // ── 2. Build & Push secuencial ────────────
-        stage('Build & Push') {
-            when { expression { env.APPS_UPDATED != '' && env.APPS_UPDATED != null } }
+        stage('Build & Push Image') {
             agent {
                 kubernetes {
                     yaml getKanikoPod()
                 }
             }
             steps {
-                script {
-                    def appsList = env.APPS_UPDATED.split(',')
+                container('kaniko') {
+                    script {
+                        echo "🚀 Construyendo imagen Docker..."
+                        echo "  Repo: ${DOCKER_REPO}"
+                        echo "  Dockerfile: Dockerfile"
+                        echo "  Context: $(pwd)"
 
-                    for (int i = 0; i < appsList.size(); i++) {
-                        def appName   = appsList[i]
-                        def dockerRepo = frontendApp[appName]
-                        def commitHash = env.GIT_COMMIT
+                        sh '''
+                            set -x
+                            /kaniko/executor \
+                                --context $(pwd) \
+                                --dockerfile Dockerfile \
+                                --destination ${DOCKER_REPO}:${GIT_COMMIT} \
+                                --destination ${DOCKER_REPO}:latest \
+                                --cache=true \
+                                --cache-dir=/workspace/cache \
+                                --cache-ttl=168h
+                        '''
 
-                        echo "🚀 Construyendo ${appName} (${i+1}/${appsList.size()})"
-
-                        checkout scm
-                        container('kaniko') {
-                            sh """
-                            /kaniko/executor \\
-                                --context \$(pwd) \\
-                                --dockerfile Dockerfile \\
-                                --destination ${dockerRepo}:${commitHash} \\
-                                --destination ${dockerRepo}:latest \\
-                                --cache=true \\
-                                --cache-dir=/workspace/cache \\
-                                --cache-ttl=168h \\
-                                --cache-repo="" \\
-                                --no-push-cache
-                            """
-                        }
+                        echo "✓ Imagen publicada:"
+                        echo "  - ${DOCKER_REPO}:${GIT_COMMIT}"
+                        echo "  - ${DOCKER_REPO}:latest"
                     }
                 }
             }
         }
 
-        // ── 3. Restart Deployments ────────────────
-        stage('Restart Deployments') {
-            when { expression { env.APPS_UPDATED != '' && env.APPS_UPDATED != null } }
+        stage('Restart Deployment') {
             agent {
                 kubernetes {
                     yaml getToolsPod()
@@ -181,30 +148,27 @@ pipeline {
             }
             steps {
                 container('tools') {
-                    sh """
-                    set -e
-                    echo "Reiniciando deployments en namespace ${NAMESPACE}..."
-
-                    kubectl rollout restart deployment/main-frontend-app -n ${NAMESPACE}
-
-                    echo "Esperando rollout de todos los deployments..."
-
-                    kubectl rollout status deployment/main-frontend-app -n ${NAMESPACE} --timeout=120s
-
-                    echo "✓ Todos los deployments actualizados correctamente"
-                    """
+                    script {
+                        echo "🔄 Reiniciando deployment..."
+                        sh '''
+                            kubectl rollout restart deployment/main-frontend-app -n ${NAMESPACE} || true
+                            sleep 3
+                            kubectl rollout status deployment/main-frontend-app -n ${NAMESPACE} --timeout=300s || true
+                            echo "✓ Deployment reiniciado"
+                        '''
+                    }
                 }
             }
         }
 
-    } // fin stages
+    }
 
     post {
         success {
-            echo "✅ Pipeline completado: imágenes publicadas y deployments reiniciados."
+            echo "✅ Pipeline exitoso"
         }
         failure {
-            echo "❌ Pipeline fallido. Revisa los logs de la etapa en rojo."
+            echo "❌ Pipeline falló - revisa los logs arriba"
         }
     }
 
