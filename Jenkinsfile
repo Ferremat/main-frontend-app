@@ -69,7 +69,7 @@ pipeline {
     agent none
 
     triggers {
-        githubPush()
+        pollSCM('* * * * *') // Revisa cada minuto
     }
 
     environment {
@@ -91,14 +91,14 @@ pipeline {
             steps {
                 checkout scm
                 script {
-                    // Ignorar commits de Jenkins CI (tienen [skip ci])
-                    def commitMsg = sh(
-                        script: "git log -1 --pretty=%B",
+                    // Ignorar commits de Jenkins CI
+                    def commitAuthor = sh(
+                        script: "git log -1 --pretty=%an",
                         returnStdout: true
                     ).trim()
 
-                    if (commitMsg.contains('[skip ci]')) {
-                        echo "⏭️ Saltando build - commit tiene [skip ci]"
+                    if (commitAuthor == 'Jenkins CI') {
+                        echo "⏭️ Saltando build - commit de Jenkins CI"
                         currentBuild.result = 'SUCCESS'
                         return
                     }
