@@ -5,6 +5,8 @@
 .nitro
 .cache
 dist
+.claude
+.vscode
 
 # Node dependencies
 node_modules
