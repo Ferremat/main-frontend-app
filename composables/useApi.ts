@@ -20,14 +20,18 @@ export interface Product {
 export const useApi = () => {
   const config = useRuntimeConfig()
   const baseUrl = config.public.apiUrl as string
-  const { handleError } = useErrorHandler()
+
+  // Solo inicializar errorHandler en el cliente
+  const errorHandler = process.client ? useErrorHandler() : null
 
   const fetchProducts = async (): Promise<Product[]> => {
     try {
       const data = await $fetch<Product[]>(`${baseUrl}products/list_products`)
       return data
     } catch (error) {
-      handleError(error, { context: 'fetchProducts', showNotification: true });
+      if (errorHandler) {
+        errorHandler.handleError(error, { context: 'fetchProducts', showNotification: true });
+      }
       throw error;
     }
   }
@@ -43,7 +47,9 @@ export const useApi = () => {
       }
       return data
     } catch (error) {
-      handleError(error, { context: `fetchProductById(${id})`, showNotification: true });
+      if (errorHandler) {
+        errorHandler.handleError(error, { context: `fetchProductById(${id})`, showNotification: true });
+      }
       throw error;
     }
   }
@@ -53,7 +59,9 @@ export const useApi = () => {
       const data = await $fetch<Category[]>(`${baseUrl}products/list_categories`)
       return data
     } catch (error) {
-      handleError(error, { context: 'fetchCategories', showNotification: true });
+      if (errorHandler) {
+        errorHandler.handleError(error, { context: 'fetchCategories', showNotification: true });
+      }
       throw error;
     }
   }

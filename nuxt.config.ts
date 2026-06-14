@@ -93,7 +93,7 @@ export default defineNuxtConfig({
 
   // Performance & Caching
   routeRules: {
-    '/': { prerender: true },
+    '/': { swr: 3600 }, // Cambio a SWR para evitar SSR issues con useState
     '/conocenos': { prerender: true },
     '/contactanos': { prerender: true },
     '/politicas': { prerender: true },
