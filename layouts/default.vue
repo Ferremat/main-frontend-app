@@ -27,6 +27,9 @@ watch(theme, (val) => {
     class="min-h-screen flex flex-col font-sans transition-colors duration-300"
     :class="theme === 'dark' ? 'bg-slate-900 text-gray-100' : 'bg-white text-gray-900'"
   >
+    <!-- Notificaciones de error -->
+    <ErrorNotification />
+
     <!-- Tour guiado -->
     <GuidedTour />
 
