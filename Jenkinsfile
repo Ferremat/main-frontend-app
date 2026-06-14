@@ -30,11 +30,11 @@ spec:
     tty: true
     resources:
       requests:
-        memory: "2Gi"
-        cpu: "1"
+        memory: "512Mi"
+        cpu: "250m"
       limits:
-        memory: "4Gi"
-        cpu: "2"
+        memory: "1Gi"
+        cpu: "500m"
     volumeMounts:
     - name: kaniko-secret
       mountPath: /kaniko/.docker/config.json
