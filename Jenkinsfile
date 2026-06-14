@@ -136,14 +136,17 @@ spec:
             steps {
                 container('kubectl') {
                     sh '''
-                    echo "🔄 Forzando actualización de pods..."
-                    kubectl delete pods -l app=main-frontend-app -n ferremat-deploy --grace-period=30 || true
+                    echo "🔄 Forzando actualización de deployment..."
 
-                    echo "⏳ Esperando a que se creen nuevos pods..."
-                    sleep 5
+                    # Patch del deployment con timestamp para forzar rollout
+                    kubectl patch deployment main-frontend-app-deployment -n ferremat-deploy \
+                      -p "{\"spec\":{\"template\":{\"metadata\":{\"annotations\":{\"restartedAt\":\"$(date +'%s')\"}}}}}}" || true
+
+                    echo "⏳ Esperando rollout..."
+                    sleep 3
                     kubectl rollout status deployment/main-frontend-app-deployment -n ferremat-deploy --timeout=300s || true
 
-                    echo "✓ Pods actualizados"
+                    echo "✓ Deployment actualizado"
                     '''
                 }
             }
