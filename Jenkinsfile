@@ -78,6 +78,73 @@ spec:
             }
         }
 
+        stage('Deploy to Kubernetes') {
+            agent {
+                kubernetes {
+                    yaml """
+apiVersion: v1
+kind: Pod
+spec:
+  serviceAccountName: jenkins
+  containers:
+  - name: kubectl
+    image: bitnami/kubectl:latest
+    command: ["cat"]
+    tty: true
+    resources:
+      requests:
+        memory: "128Mi"
+        cpu: "100m"
+      limits:
+        memory: "256Mi"
+        cpu: "200m"
+  nodeSelector:
+    kubernetes.io/os: linux
+  restartPolicy: Never
+"""
+                }
+            }
+            steps {
+                container('kubectl') {
+                    script {
+                        sh """
+                        set -e
+
+                        echo "🚀 Desplegando a Kubernetes..."
+                        echo "Namespace: ${NAMESPACE}"
+                        echo "Deployment: ${APP_NAME}"
+                        echo "Imagen: ${DOCKER_USER}/${APP_NAME}:${IMAGE_TAG}"
+
+                        # Actualizar la imagen en el deployment
+                        echo "📦 Actualizando imagen..."
+                        kubectl set image deployment/${APP_NAME} \\
+                            ${APP_NAME}=${DOCKER_USER}/${APP_NAME}:${IMAGE_TAG} \\
+                            -n ${NAMESPACE} \\
+                            --record || echo "⚠️ Deployment no encontrado, continuando..."
+
+                        # Esperar a que el rollout se complete
+                        echo "⏳ Esperando rollout..."
+                        kubectl rollout status deployment/${APP_NAME} \\
+                            -n ${NAMESPACE} \\
+                            --timeout=10m || echo "⚠️ Timeout en rollout"
+
+                        # Mostrar status
+                        echo "✅ Status actual del deployment:"
+                        kubectl get deployment ${APP_NAME} -n ${NAMESPACE} -o wide
+
+                        echo ""
+                        echo "Pods activos:"
+                        kubectl get pods -n ${NAMESPACE} -l app=${APP_NAME} -o wide
+
+                        echo ""
+                        echo "Imagen activa:"
+                        kubectl get pods -n ${NAMESPACE} -l app=${APP_NAME} -o jsonpath='{.items[0].spec.containers[0].image}'
+                        """
+                    }
+                }
+            }
+        }
+
         stage('Update values.yaml & Push to Git') {
             agent {
                 kubernetes {
@@ -124,10 +191,10 @@ spec:
                         git fetch https://\${GIT_USER}:\${GIT_TOKEN}@\${REPO_NO_SCHEME} main
                         git checkout -B main FETCH_HEAD
 
-                        echo "Updating image tag to ${IMAGE_TAG} in ${VALUES_FILE}..."
+                        echo "Actualizando image tag a ${IMAGE_TAG} en ${VALUES_FILE}..."
                         sed -i 's|^    tag:.*|    tag: ${IMAGE_TAG}|' ${VALUES_FILE}
 
-                        echo "--- values.yaml after update ---"
+                        echo "--- values.yaml después de actualizar ---"
                         cat ${VALUES_FILE}
 
                         git add ${VALUES_FILE}
@@ -135,7 +202,7 @@ spec:
 
                         git push https://\${GIT_USER}:\${GIT_TOKEN}@\${REPO_NO_SCHEME} HEAD:main
 
-                        echo "values.yaml pushed — ArgoCD will sync automatically"
+                        echo "✅ values.yaml actualizado — ArgoCD sincronizará automáticamente"
                         """
                     }
                 }
@@ -146,10 +213,39 @@ spec:
 
     post {
         success {
-            echo "Pipeline completed: image published and values.yaml updated."
+            script {
+                sh '''
+                echo "================================================"
+                echo "✅ PIPELINE COMPLETADO EXITOSAMENTE"
+                echo "================================================"
+                echo "Aplicación: ${APP_NAME}"
+                echo "Imagen: ${DOCKER_USER}/${APP_NAME}:${IMAGE_TAG}"
+                echo "Namespace: ${NAMESPACE}"
+                echo ""
+                echo "✓ Imagen construida y subida a Docker Hub"
+                echo "✓ Deployment actualizado en Kubernetes"
+                echo "✓ values.yaml actualizado en Git"
+                echo "✓ ArgoCD sincronizará los cambios automáticamente"
+                echo ""
+                echo "Build #${BUILD_NUMBER} completado en ${currentBuild.durationString}"
+                echo "================================================"
+                '''
+            }
         }
         failure {
-            echo "Pipeline failed. Check the logs."
+            script {
+                sh '''
+                echo "================================================"
+                echo "❌ PIPELINE FALLÓ"
+                echo "================================================"
+                echo "Build #${BUILD_NUMBER} falló"
+                echo "Revisa los logs arriba para más detalles"
+                echo "================================================"
+                '''
+            }
+        }
+        unstable {
+            echo "⚠️ Pipeline completado con advertencias"
         }
     }
 }

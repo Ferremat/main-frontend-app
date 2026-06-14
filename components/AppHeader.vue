@@ -8,6 +8,7 @@ import {
 const { lang, theme, toggleLang, toggleTheme } = useSettings();
 const { isLoggedIn, firstName, initials, logout } = useAuth();
 const { totalItems } = useCart();
+const { resetTour } = useTour();
 const router = useRouter();
 
 const navLinks = computed(() => [
@@ -312,6 +313,23 @@ onBeforeUnmount(() => document.removeEventListener('click', handleOutsideClick))
                 <span class="text-xs font-bold px-2 py-0.5 rounded-full bg-ferremat-blue/10 dark:bg-ferremat-blue/20 text-ferremat-blue dark:text-blue-400">
                   {{ theme === 'light' ? (lang === 'es' ? 'Claro' : 'Light') : (lang === 'es' ? 'Oscuro' : 'Dark') }}
                 </span>
+              </button>
+
+              <!-- Tutorial / Tour Button -->
+              <button
+                id="settings-tour-btn"
+                @click="resetTour(); settingsOpen = false"
+                class="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-purple-50 dark:hover:bg-purple-950/30 transition-colors group text-left"
+              >
+                <div class="w-9 h-9 rounded-xl bg-purple-100 dark:bg-purple-950/40 flex items-center justify-center flex-shrink-0 group-hover:bg-purple-200 dark:group-hover:bg-purple-950/60 transition-colors">
+                  <svg class="w-5 h-5 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  </svg>
+                </div>
+                <div class="flex-1">
+                  <p class="text-sm font-bold text-gray-800 dark:text-gray-100">{{ lang === 'es' ? 'Ver Tutorial' : 'View Tutorial' }}</p>
+                  <p class="text-xs text-gray-400 dark:text-gray-500">{{ lang === 'es' ? 'Aprende a usar Ferremat' : 'Learn how to use Ferremat' }}</p>
+                </div>
               </button>
 
               <div class="my-1 border-t border-gray-100 dark:border-slate-700 transition-colors" />
