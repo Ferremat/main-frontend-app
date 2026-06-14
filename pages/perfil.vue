@@ -4,29 +4,50 @@ import {
   User, Mail, Phone, MapPin, Calendar, Edit2, Save, X,
   Shield, Heart, Package, Clock, CheckCircle,
 } from 'lucide-vue-next';
+import type { User as UserType } from '~/composables/useApi';
 
 const { lang, theme } = useSettings();
-const { user } = useAuth();
+const { user: authUser } = useAuth();
+const { fetchCurrentUser, updateUser } = useApi();
 const router = useRouter();
 
 const isEditing = ref(false);
 const isSaving = ref(false);
 const successMessage = ref('');
 
-const formData = ref({
-  name: user.value?.name || '',
-  email: user.value?.email || '',
-  phone: user.value?.phone || '',
-  address: user.value?.address || '',
-  city: user.value?.city || '',
-  zipCode: user.value?.zipCode || '',
-});
+const { data: currentUser, pending: loading, error: fetchError, refresh } = useAsyncData(
+  'currentUser',
+  async () => {
+    try {
+      return await fetchCurrentUser();
+    } catch (err: any) {
+      console.error('Error fetching user:', err);
+      throw new Error('Failed to load user profile');
+    }
+  },
+  { cache: false }
+);
+
+const formData = ref<Partial<UserType>>({});
+
+watch(currentUser, (user) => {
+  if (user) {
+    formData.value = {
+      name: user.name || '',
+      email: user.email || '',
+      phone: user.phone || '',
+      address: user.address || '',
+      city: user.city || '',
+      zipCode: user.zipCode || '',
+    };
+  }
+}, { immediate: true });
 
 const stats = computed(() => [
-  { label: lang.value === 'es' ? 'Pedidos' : 'Orders', value: '12', icon: Package },
-  { label: lang.value === 'es' ? 'En progreso' : 'In progress', value: '2', icon: Clock },
-  { label: lang.value === 'es' ? 'Completados' : 'Completed', value: '10', icon: CheckCircle },
-  { label: lang.value === 'es' ? 'Guardados' : 'Saved', value: '5', icon: Heart },
+  { label: lang.value === 'es' ? 'Pedidos' : 'Orders', value: '0', icon: Package },
+  { label: lang.value === 'es' ? 'En progreso' : 'In progress', value: '0', icon: Clock },
+  { label: lang.value === 'es' ? 'Completados' : 'Completed', value: '0', icon: CheckCircle },
+  { label: lang.value === 'es' ? 'Guardados' : 'Saved', value: '0', icon: Heart },
 ]);
 
 const translations = computed(() => ({
@@ -60,23 +81,23 @@ const inputCls = computed(() => theme.value === 'dark'
 const textColor = computed(() => theme.value === 'dark' ? 'text-gray-100' : 'text-gray-800');
 const subTextColor = computed(() => theme.value === 'dark' ? 'text-gray-400' : 'text-gray-600');
 
-if (!user.value) {
+if (!authUser.value) {
   router.push('/login');
 }
 
 async function handleSave() {
   isSaving.value = true;
   try {
-    // Simular guardado en API
+    await updateUser(formData.value);
+    await refresh();
+    successMessage.value = translations.value.successMessage;
+    isEditing.value = false;
     setTimeout(() => {
-      successMessage.value = translations.value.successMessage;
-      isEditing.value = false;
-      isSaving.value = false;
-      setTimeout(() => {
-        successMessage.value = '';
-      }, 3000);
-    }, 1000);
+      successMessage.value = '';
+    }, 3000);
   } catch (error) {
+    console.error('Error updating profile:', error);
+  } finally {
     isSaving.value = false;
   }
 }
@@ -113,20 +134,32 @@ useSeo({
         </div>
       </Transition>
 
+      <!-- Loading State -->
+      <div v-if="loading" class="rounded-2xl shadow-md border p-8 mb-8 transition-colors duration-300" :class="cardBg">
+        <div class="flex items-center gap-6">
+          <div class="w-24 h-24 bg-slate-300 dark:bg-slate-700 rounded-2xl animate-pulse" />
+          <div class="flex-1">
+            <div class="h-8 bg-slate-300 dark:bg-slate-700 rounded-lg w-32 mb-2 animate-pulse" />
+            <div class="h-4 bg-slate-300 dark:bg-slate-700 rounded-lg w-40 mb-4 animate-pulse" />
+            <div class="h-3 bg-slate-300 dark:bg-slate-700 rounded-lg w-48 animate-pulse" />
+          </div>
+        </div>
+      </div>
+
       <!-- Profile Header Card -->
-      <div class="rounded-2xl shadow-md border p-8 mb-8 transition-colors duration-300" :class="cardBg">
+      <div v-else-if="currentUser" class="rounded-2xl shadow-md border p-8 mb-8 transition-colors duration-300" :class="cardBg">
         <div class="flex flex-col sm:flex-row items-start sm:items-center gap-6">
           <!-- Avatar -->
           <div class="w-24 h-24 bg-ferremat-orange rounded-2xl flex items-center justify-center text-white text-4xl font-extrabold flex-shrink-0 ring-4 ring-ferremat-orange/20">
-            {{ user?.name?.split(' ').slice(0, 2).map((n: string) => n[0]).join('').toUpperCase() }}
+            {{ currentUser.name?.split(' ').slice(0, 2).map((n: string) => n[0]).join('').toUpperCase() }}
           </div>
 
           <!-- User Info -->
           <div class="flex-1">
-            <h2 class="text-3xl font-extrabold" :class="textColor">{{ user?.name }}</h2>
-            <p class="text-sm" :class="subTextColor">{{ user?.email }}</p>
+            <h2 class="text-3xl font-extrabold" :class="textColor">{{ currentUser.name }}</h2>
+            <p class="text-sm" :class="subTextColor">{{ currentUser.email }}</p>
             <p class="text-xs mt-2" :class="subTextColor">
-              {{ translations.memberSince }} 15 de Marzo de 2024
+              {{ translations.memberSince }} {{ currentUser.createdAt ? new Date(currentUser.createdAt).toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' }) : 'N/A' }}
             </p>
           </div>
 

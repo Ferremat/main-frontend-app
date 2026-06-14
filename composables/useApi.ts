@@ -16,6 +16,17 @@ export interface Product {
   categoryId?: string
 }
 
+export interface User {
+  id: string
+  name: string
+  email: string
+  phone?: string
+  address?: string
+  city?: string
+  zipCode?: string
+  createdAt?: string
+}
+
 export const useApi = () => {
   const config = useRuntimeConfig()
   const baseUrl = config.public.apiUrl as string
@@ -41,9 +52,24 @@ export const useApi = () => {
     return data
   }
 
+  const fetchCurrentUser = async (): Promise<User> => {
+    const data = await $fetch<User>(`${baseUrl}users/me`)
+    return data
+  }
+
+  const updateUser = async (userData: Partial<User>): Promise<User> => {
+    const data = await $fetch<User>(`${baseUrl}users/me`, {
+      method: 'PUT',
+      body: userData,
+    })
+    return data
+  }
+
   return {
     fetchProducts,
     fetchProductById,
     fetchCategories,
+    fetchCurrentUser,
+    updateUser,
   }
 }
