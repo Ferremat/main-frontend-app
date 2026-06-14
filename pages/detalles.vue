@@ -29,17 +29,25 @@ const added    = ref(false);
 const { data: product, pending: loading, error: fetchError } = useAsyncData(
   () => `product-${route.query.id}`,
   async () => {
-    const productId = (route.query.id as string) || null;
+    let productId = route.query.id;
+
+    // Nuxt a veces devuelve query params como array
+    if (Array.isArray(productId)) {
+      productId = productId[0];
+    }
+
+    productId = productId as string;
 
     if (!productId) {
-      throw new Error('Product not found');
+      throw new Error('Product ID is missing');
     }
 
     try {
       const fetchedProduct = await fetchProductById(productId);
       return fetchedProduct;
-    } catch (err) {
-      throw new Error('Product not found');
+    } catch (err: any) {
+      console.error('Error fetching product:', err);
+      throw new Error(err?.message || 'Product not found');
     }
   },
   { watch: [() => route.query.id] }
