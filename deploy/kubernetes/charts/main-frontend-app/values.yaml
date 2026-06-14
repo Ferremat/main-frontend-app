@@ -10,6 +10,8 @@ app:
     name: main-frontend-app
     Port: 3000
     replicas: 1
+  podAnnotations:
+    restartedAt: "initial"
 
 service:
   type: ClusterIP
