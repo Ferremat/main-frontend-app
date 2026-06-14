@@ -99,6 +99,7 @@ export default defineNuxtConfig({
     '/politicas': { prerender: true },
     '/carrito': { swr: 3600 },
     '/login': { swr: 3600 },
+    '/productos/**': { swr: 3600 }, // Product detail pages — SWR para evitar SSR issues
   },
 
   // Compression

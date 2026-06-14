@@ -21,7 +21,7 @@ const router = useRouter();
 const { lang, theme } = useSettings();
 const { addItem } = useCart();
 const { isLoggedIn } = useAuth();
-const { fetchProductById } = useApi();
+const { fetchProductById, fetchProducts } = useApi();
 
 const product  = ref<Product | null>(null);
 const loading  = ref(true);
@@ -32,14 +32,42 @@ const added    = ref(false); // feedback tras añadir al carrito
 // ── Fetch ────────────────────────────────────────────────────────────────────
 onMounted(async () => {
   try {
-    const id = route.params.id as string;
-    if (!id) {
-      throw new Error('Product ID not provided');
+    const slug = route.params.id as string;
+    const idFromQuery = (route.query.id as string) || null;
+
+    if (!slug && !idFromQuery) {
+      throw new Error('Product not found');
     }
-    const fetchedProduct = await fetchProductById(id);
+
+    let fetchedProduct: Product | null = null;
+
+    // Intenta cargar por ID si viene en query params
+    if (idFromQuery) {
+      try {
+        fetchedProduct = await fetchProductById(idFromQuery);
+      } catch {
+        // Si falla, intenta por slug
+        fetchedProduct = null;
+      }
+    }
+
+    // Si no hay producto y hay slug, busca en todos los productos
+    if (!fetchedProduct && slug) {
+      const allProducts = await fetchProducts();
+      const slugNormalized = slug.toLowerCase().replace(/[^\w-]/g, '');
+      fetchedProduct = allProducts.find(p =>
+        p.name
+          .toLowerCase()
+          .trim()
+          .replace(/\s+/g, '-')
+          .replace(/[^\w-]/g, '') === slugNormalized
+      ) || null;
+    }
+
     if (!fetchedProduct) {
       throw new Error('Product not found');
     }
+
     product.value = fetchedProduct;
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : '';
