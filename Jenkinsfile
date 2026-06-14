@@ -98,8 +98,7 @@ spec:
                             --context . \\
                             --destination ${DOCKER_REPO}:${DOCKER_IMAGE_TAG} \\
                             --destination ${DOCKER_REPO}:latest \\
-                            --cache=true \\
-                            --cache-ttl=24h \\
+                            --cache=false \\
                             -v info
                     """
                 }
