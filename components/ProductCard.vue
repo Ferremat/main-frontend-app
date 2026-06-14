@@ -25,7 +25,15 @@ const t = computed(() => ({
 }));
 
 function goToDetail() {
-  router.push(`/productos/${props.id}`);
+  const slug = props.title
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, '-')
+    .replace(/[^\w-]/g, '');
+  router.push({
+    path: `/productos/${slug}`,
+    query: { id: props.id }
+  });
 }
 
 function handleAddToCart() {
