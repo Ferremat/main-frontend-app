@@ -100,6 +100,8 @@ export default defineNuxtConfig({
     '/carrito': { swr: 3600 },
     '/login': { swr: 3600 },
     '/productos/**': { swr: 3600 },
+    '/pedido-confirmado': { ssr: false },
+    '/perfil': { ssr: false },
   },
 
   // Compression & Prerendering
