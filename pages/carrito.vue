@@ -4,13 +4,49 @@ import { ShoppingCart, Trash2, Plus, Minus, ArrowLeft, ShoppingBag, Tag, Truck, 
 
 const { lang, theme } = useSettings();
 const { items, totalItems, totalPrice, removeItem, updateQuantity, clearCart } = useCart();
+const { user } = useAuth();
+const router = useRouter();
+const route = useRoute();
 
-const showPaymentGateway = ref(false);
-function openPaymentGateway() { showPaymentGateway.value = true; }
-function closePaymentGateway() { showPaymentGateway.value = false; }
-function handlePaymentSuccess() {
-  clearCart();
-  showPaymentGateway.value = false;
+const showCanceledNotice = computed(() => route.query.canceled === 'true');
+
+const checkoutLoading = ref(false);
+const checkoutError = ref('');
+
+async function handleCheckout() {
+  if (!user.value?.id) {
+    router.push('/login');
+    return;
+  }
+
+  checkoutLoading.value = true;
+  checkoutError.value = '';
+
+  try {
+    const apiUrl = useRuntimeConfig().public.apiUrl || 'http://localhost:3001';
+    const response = await fetch(`${apiUrl}/orders/checkout`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        userId: user.value.id,
+        payment_method: 'stripe',
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      checkoutError.value = data.message || (lang.value === 'es' ? 'Error al procesar el pedido' : 'Error processing order');
+      checkoutLoading.value = false;
+      return;
+    }
+
+    // Redirigir a Stripe Checkout
+    window.location.href = data.checkoutUrl;
+  } catch (err) {
+    checkoutError.value = lang.value === 'es' ? 'Error al conectar con el servidor' : 'Error connecting to server';
+    checkoutLoading.value = false;
+  }
 }
 
 const IVA_RATE = 0.21;
@@ -46,8 +82,10 @@ const t = computed(() => ({
   freeShip:    lang.value === 'es' ? 'Gratis'                : 'Free',
   total:       lang.value === 'es' ? 'Total'                 : 'Total',
   checkout:    lang.value === 'es' ? 'Tramitar pedido'       : 'Proceed to checkout',
+  redirecting: lang.value === 'es' ? 'Redirigiendo...'       : 'Redirecting...',
   freeFrom:    lang.value === 'es' ? 'Envío gratis a partir de 50 €' : 'Free shipping from €50',
   secure:      lang.value === 'es' ? 'Pago 100% seguro'      : '100% secure payment',
+  canceled:    lang.value === 'es' ? 'Pago cancelado. Tu carrito sigue intacto.' : 'Payment canceled. Your cart is still here.',
 }));
 
 useSeo({
@@ -76,6 +114,13 @@ useSeo({
           <ArrowLeft class="w-4 h-4" stroke-width="2.5" />
           {{ t.back }}
         </NuxtLink>
+      </div>
+    </div>
+
+    <!-- Canceled payment notice -->
+    <div v-if="showCanceledNotice" class="max-w-6xl mx-auto px-4 sm:px-6 mb-4">
+      <div class="flex items-center gap-2 bg-yellow-50 border border-yellow-200 text-yellow-700 rounded-xl px-4 py-3 text-sm font-medium">
+        ⚠ {{ t.canceled }}
       </div>
     </div>
 
@@ -224,13 +269,23 @@ useSeo({
               <p class="text-xs text-ferremat-blue font-medium">{{ t.freeFrom }}</p>
             </div>
 
+            <!-- Checkout error -->
+            <div
+              v-if="checkoutError"
+              class="mt-4 flex items-center gap-2 bg-red-50 border border-red-200 text-red-600 rounded-xl px-3 py-2 text-xs font-medium"
+            >
+              ⚠ {{ checkoutError }}
+            </div>
+
             <!-- CTA -->
             <button
-              @click="openPaymentGateway"
-              class="mt-5 w-full bg-ferremat-orange hover:bg-ferremat-orange/90 active:scale-95 text-white font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 transition-all duration-200 shadow-md shadow-ferremat-orange/20"
+              @click="handleCheckout"
+              :disabled="checkoutLoading"
+              class="mt-5 w-full bg-ferremat-orange hover:bg-ferremat-orange/90 active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed text-white font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 transition-all duration-200 shadow-md shadow-ferremat-orange/20"
             >
-              <ShoppingBag class="w-5 h-5" stroke-width="2" />
-              {{ t.checkout }}
+              <span v-if="checkoutLoading" class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              <ShoppingBag v-else class="w-5 h-5" stroke-width="2" />
+              {{ checkoutLoading ? t.redirecting : t.checkout }}
             </button>
 
             <!-- Trust badge -->
@@ -264,15 +319,6 @@ useSeo({
 
       </div>
     </div>
-
-    <!-- Payment Gateway Modal -->
-    <Teleport v-if="showPaymentGateway" to="body">
-      <PaymentGateway
-        :total="total"
-        @close="closePaymentGateway"
-        @success="handlePaymentSuccess"
-      />
-    </Teleport>
   </div>
 </template>
 
