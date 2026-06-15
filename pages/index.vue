@@ -11,7 +11,7 @@ useSeo({
 <template>
   <div>
     <HeroSection />
-    <CategoryFilter />
-    <ProductList />
+    <CategoryFilter @select="selectedCategory = $event" :selected="selectedCategory" />
+    <ProductList :selectedCategory="selectedCategory" />
   </div>
 </template>
