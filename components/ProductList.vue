@@ -5,6 +5,8 @@ const { lang, theme } = useSettings();
 const { fetchProducts } = useApi();
 const route = useRoute();
 
+const props = defineProps<{ selectedCategory: string }>();
+
 const { data: products, pending: loading, error: fetchError } = useAsyncData(
   'products',
   async () => {
@@ -39,6 +41,10 @@ const mappedProducts = computed(() => {
     stock:       p.stock ?? 0,
   }));
 
+  if (props.selectedCategory) {
+    filtered = filtered.filter(p => p.category === props.selectedCategory);
+  }
+
   if (searchQuery.value) {
     const query = searchQuery.value.toLowerCase();
     filtered = filtered.filter(p =>
@@ -51,9 +57,12 @@ const mappedProducts = computed(() => {
   return filtered;
 });
 
-const sectionTitle  = computed(() => {
+const sectionTitle = computed(() => {
   if (searchQuery.value) {
     return lang.value === 'es' ? `Resultados de búsqueda: "${searchQuery.value}"` : `Search results: "${searchQuery.value}"`;
+  }
+  if (props.selectedCategory) {
+    return props.selectedCategory;
   }
   return lang.value === 'es' ? 'Todos los Productos' : 'All Products';
 });

@@ -189,7 +189,7 @@ useSeo({
               <User class="w-5 h-5 text-ferremat-blue flex-shrink-0" stroke-width="2" />
               <div>
                 <p class="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest">{{ translations.labelName }}</p>
-                <p class="text-sm font-semibold mt-1" :class="textColor">{{ user?.name }}</p>
+                <p class="text-sm font-semibold mt-1" :class="textColor">{{ currentUser?.name }}</p>
               </div>
             </div>
 
@@ -197,7 +197,7 @@ useSeo({
               <Mail class="w-5 h-5 text-ferremat-blue flex-shrink-0" stroke-width="2" />
               <div>
                 <p class="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest">{{ translations.labelEmail }}</p>
-                <p class="text-sm font-semibold mt-1" :class="textColor">{{ user?.email }}</p>
+                <p class="text-sm font-semibold mt-1" :class="textColor">{{ currentUser?.email }}</p>
               </div>
             </div>
 
@@ -205,7 +205,7 @@ useSeo({
               <Phone class="w-5 h-5 text-ferremat-blue flex-shrink-0" stroke-width="2" />
               <div>
                 <p class="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest">{{ translations.labelPhone }}</p>
-                <p class="text-sm font-semibold mt-1" :class="textColor">{{ user?.phone || '—' }}</p>
+                <p class="text-sm font-semibold mt-1" :class="textColor">{{ currentUser?.phone || '—' }}</p>
               </div>
             </div>
 
@@ -213,7 +213,7 @@ useSeo({
               <MapPin class="w-5 h-5 text-ferremat-blue flex-shrink-0" stroke-width="2" />
               <div>
                 <p class="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest">{{ translations.labelCity }}</p>
-                <p class="text-sm font-semibold mt-1" :class="textColor">{{ user?.city || '—' }}</p>
+                <p class="text-sm font-semibold mt-1" :class="textColor">{{ currentUser?.city || '—' }}</p>
               </div>
             </div>
           </div>

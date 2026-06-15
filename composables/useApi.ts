@@ -53,12 +53,20 @@ export const useApi = () => {
   }
 
   const fetchCurrentUser = async (): Promise<User> => {
-    const data = await $fetch<User>(`${baseUrl}users/me`)
+    const { user } = useAuth()
+    const id = user.value?.id
+    if (!id) throw new Error('No hay usuario autenticado')
+    
+    const data = await $fetch<User>(`${baseUrl}users/${id}`)
     return data
   }
 
   const updateUser = async (userData: Partial<User>): Promise<User> => {
-    const data = await $fetch<User>(`${baseUrl}users/me`, {
+    const { user } = useAuth()
+    const id = user.value?.id
+    if (!id) throw new Error('No hay usuario autenticado')
+
+    const data = await $fetch<User>(`${baseUrl}users/${id}`, {
       method: 'PUT',
       body: userData,
     })
