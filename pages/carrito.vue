@@ -49,7 +49,8 @@ async function confirmCheckout() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        userId:           user.value!.id,
+        user_id:          user.value!.id,
+        status:           0,
         payment_method:   'stripe',
         shipping_address: shippingForm.value,
       }),
