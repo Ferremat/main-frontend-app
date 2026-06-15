@@ -2,6 +2,7 @@
 const { theme, initTheme } = useSettings();
 const { initAuth } = useAuth();
 const { initCart } = useCart();
+const route = useRoute();
 
 useAsyncData('layout-init', async () => {
   initAuth();
@@ -12,6 +13,11 @@ useAsyncData('layout-init', async () => {
 onMounted(() => {
   initTheme();
   initCart();
+  refreshNuxtData(['products', 'categories', 'currentUser']);
+});
+
+// Refrescar datos cuando el usuario navega entre páginas
+watch(() => route.path, () => {
   refreshNuxtData(['products', 'categories', 'currentUser']);
 });
 
