@@ -45,12 +45,11 @@ async function confirmCheckout() {
 
   try {
     const apiUrl = useRuntimeConfig().public.apiUrl || 'http://localhost:3001';
-    const response = await fetch(`${apiUrl}orders/checkout`, {
+    const response = await fetch(`${apiUrl}/orders/checkout`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        user_id:          user.value!.id,
-        status:           0,
+        userId:           user.value!.id,
         payment_method:   'stripe',
         shipping_address: shippingForm.value,
       }),
