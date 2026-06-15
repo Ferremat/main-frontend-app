@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
-import { ShoppingCart, Trash2, Plus, Minus, ArrowLeft, ShoppingBag, Tag, Truck, Shield } from 'lucide-vue-next';
+import { ShoppingCart, Trash2, Plus, Minus, ArrowLeft, ShoppingBag, Tag, Truck, Shield, MapPin, ChevronRight } from 'lucide-vue-next';
 
 const { lang, theme } = useSettings();
 const { items, totalItems, totalPrice, removeItem, updateQuantity, clearCart } = useCart();
@@ -10,17 +10,38 @@ const route = useRoute();
 
 const showCanceledNotice = computed(() => route.query.canceled === 'true');
 
-const checkoutLoading = ref(false);
-const checkoutError = ref('');
+// ── Modal de dirección de envío ──────────────────────────────────────────
+const showShippingModal = ref(false);
+const checkoutLoading   = ref(false);
+const checkoutError     = ref('');
 
-async function handleCheckout() {
+const shippingForm = ref({
+  address:  '',
+  city:     '',
+  zipCode:  '',
+  province: '',
+  notes:    '',
+});
+
+const shippingValid = computed(() =>
+  shippingForm.value.address.trim().length > 0 &&
+  shippingForm.value.city.trim().length > 0 &&
+  shippingForm.value.zipCode.trim().length > 0
+);
+
+// Paso 1: abrir modal de dirección
+function handleCheckout() {
   if (!user.value?.id) {
     router.push('/login');
     return;
   }
+  showShippingModal.value = true;
+}
 
+// Paso 2: confirmar dirección → llamar a API → redirigir a Stripe
+async function confirmCheckout() {
   checkoutLoading.value = true;
-  checkoutError.value = '';
+  checkoutError.value   = '';
 
   try {
     const apiUrl = useRuntimeConfig().public.apiUrl || 'http://localhost:3001';
@@ -28,8 +49,9 @@ async function handleCheckout() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        userId: user.value.id,
-        payment_method: 'stripe',
+        userId:           user.value!.id,
+        payment_method:   'stripe',
+        shipping_address: shippingForm.value,
       }),
     });
 
@@ -43,8 +65,8 @@ async function handleCheckout() {
 
     // Redirigir a Stripe Checkout
     window.location.href = data.checkoutUrl;
-  } catch (err) {
-    checkoutError.value = lang.value === 'es' ? 'Error al conectar con el servidor' : 'Error connecting to server';
+  } catch {
+    checkoutError.value   = lang.value === 'es' ? 'Error al conectar con el servidor' : 'Error connecting to server';
     checkoutLoading.value = false;
   }
 }
@@ -67,7 +89,26 @@ const subTxt   = computed(() => theme.value === 'dark' ? 'text-gray-500' : 'text
 const divider  = computed(() => theme.value === 'dark' ? 'border-slate-700/50' : 'border-gray-100');
 const inputBg  = computed(() => theme.value === 'dark' ? 'bg-slate-700/40 border-slate-600/50 text-gray-100' : 'bg-gray-50 border-gray-200 text-gray-700');
 
+const inputCls = computed(() => theme.value === 'dark'
+  ? 'border-slate-600 bg-slate-700 text-gray-100 placeholder-slate-400'
+  : 'border-gray-200 bg-white text-gray-700 placeholder-gray-400');
+const labelCls = computed(() => theme.value === 'dark' ? 'text-slate-300' : 'text-gray-700');
+
 const t = computed(() => ({
+  // Shipping modal
+  shippingTitle:  lang.value === 'es' ? 'Dirección de envío'            : 'Shipping address',
+  shippingSub:    lang.value === 'es' ? 'Necesitamos saber dónde enviarte el pedido' : 'We need to know where to send your order',
+  labelAddress:   lang.value === 'es' ? 'Dirección *'                   : 'Address *',
+  labelCity:      lang.value === 'es' ? 'Ciudad *'                      : 'City *',
+  labelZip:       lang.value === 'es' ? 'Código Postal *'               : 'Zip Code *',
+  labelProvince:  lang.value === 'es' ? 'Provincia'                     : 'Province',
+  labelNotes:     lang.value === 'es' ? 'Notas (opcional)'              : 'Notes (optional)',
+  phAddress:      lang.value === 'es' ? 'Calle Mayor 12, 3º B'          : '123 Main St, Apt 3B',
+  phNotes:        lang.value === 'es' ? 'Timbre roto, llamar al móvil…' : 'Leave at door…',
+  btnConfirm:     lang.value === 'es' ? 'Continuar al pago'             : 'Continue to payment',
+  btnCancel:      lang.value === 'es' ? 'Cancelar'                      : 'Cancel',
+  redirectingStripe: lang.value === 'es' ? 'Redirigiendo a Stripe…'    : 'Redirecting to Stripe…',
+
   title:       lang.value === 'es' ? 'Mi carrito'           : 'My cart',
   subtitle:    lang.value === 'es' ? `${totalItems.value} producto${totalItems.value !== 1 ? 's' : ''}` : `${totalItems.value} item${totalItems.value !== 1 ? 's' : ''}`,
   empty:       lang.value === 'es' ? 'Tu carrito está vacío' : 'Your cart is empty',
@@ -319,7 +360,124 @@ useSeo({
 
       </div>
     </div>
-  </div>
+  <!-- ── Modal dirección de envío ──────────────────────────────────────── -->
+  <Teleport to="body">
+    <Transition name="fade">
+      <div
+        v-if="showShippingModal"
+        class="fixed inset-0 z-50 flex items-center justify-center px-4"
+        @click.self="showShippingModal = false"
+      >
+        <!-- Backdrop -->
+        <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" />
+
+        <!-- Panel -->
+        <div class="relative w-full max-w-md rounded-2xl shadow-2xl border p-8 transition-colors duration-300" :class="cardBg">
+
+          <!-- Cabecera -->
+          <div class="flex items-center gap-3 mb-5">
+            <div class="w-10 h-10 bg-ferremat-blue/10 rounded-xl flex items-center justify-center">
+              <MapPin class="w-5 h-5 text-ferremat-blue" stroke-width="2" />
+            </div>
+            <div>
+              <h3 class="text-lg font-extrabold" :class="headTxt">{{ t.shippingTitle }}</h3>
+              <p class="text-xs" :class="subTxt">{{ t.shippingSub }}</p>
+            </div>
+          </div>
+
+          <div class="space-y-4">
+            <!-- Dirección -->
+            <div>
+              <label class="block text-sm font-semibold mb-1.5" :class="labelCls">{{ t.labelAddress }}</label>
+              <input
+                v-model="shippingForm.address"
+                type="text"
+                :placeholder="t.phAddress"
+                class="w-full rounded-xl px-4 py-3 border text-sm focus:outline-none focus:ring-2 focus:ring-ferremat-orange/40 transition"
+                :class="inputCls"
+              />
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+              <!-- Ciudad -->
+              <div>
+                <label class="block text-sm font-semibold mb-1.5" :class="labelCls">{{ t.labelCity }}</label>
+                <input
+                  v-model="shippingForm.city"
+                  type="text"
+                  placeholder="Valencia"
+                  class="w-full rounded-xl px-4 py-3 border text-sm focus:outline-none focus:ring-2 focus:ring-ferremat-orange/40 transition"
+                  :class="inputCls"
+                />
+              </div>
+              <!-- CP -->
+              <div>
+                <label class="block text-sm font-semibold mb-1.5" :class="labelCls">{{ t.labelZip }}</label>
+                <input
+                  v-model="shippingForm.zipCode"
+                  type="text"
+                  placeholder="46001"
+                  class="w-full rounded-xl px-4 py-3 border text-sm focus:outline-none focus:ring-2 focus:ring-ferremat-orange/40 transition"
+                  :class="inputCls"
+                />
+              </div>
+            </div>
+
+            <!-- Provincia -->
+            <div>
+              <label class="block text-sm font-semibold mb-1.5" :class="labelCls">{{ t.labelProvince }}</label>
+              <input
+                v-model="shippingForm.province"
+                type="text"
+                placeholder="Valencia"
+                class="w-full rounded-xl px-4 py-3 border text-sm focus:outline-none focus:ring-2 focus:ring-ferremat-orange/40 transition"
+                :class="inputCls"
+              />
+            </div>
+
+            <!-- Notas -->
+            <div>
+              <label class="block text-sm font-semibold mb-1.5" :class="labelCls">{{ t.labelNotes }}</label>
+              <textarea
+                v-model="shippingForm.notes"
+                :placeholder="t.phNotes"
+                rows="2"
+                class="w-full rounded-xl px-4 py-3 border text-sm focus:outline-none focus:ring-2 focus:ring-ferremat-orange/40 transition resize-none"
+                :class="inputCls"
+              />
+            </div>
+
+            <!-- Error -->
+            <div v-if="checkoutError" class="text-xs text-red-600 bg-red-50 border border-red-200 rounded-xl px-3 py-2">
+              ⚠ {{ checkoutError }}
+            </div>
+
+            <!-- Botones -->
+            <div class="flex gap-3 pt-1">
+              <button
+                @click="showShippingModal = false"
+                class="flex-1 py-3 rounded-xl border-2 font-bold text-sm transition-colors"
+                :class="theme === 'dark' ? 'border-slate-600 text-slate-300 hover:bg-slate-700' : 'border-gray-200 text-gray-600 hover:bg-gray-50'"
+              >
+                {{ t.btnCancel }}
+              </button>
+              <button
+                @click="confirmCheckout"
+                :disabled="checkoutLoading || !shippingValid"
+                class="flex-1 flex items-center justify-center gap-2 bg-ferremat-orange hover:bg-ferremat-orange/90 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-3 rounded-xl transition-all duration-200"
+              >
+                <span v-if="checkoutLoading" class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                <ChevronRight v-else class="w-4 h-4" stroke-width="2.5" />
+                {{ checkoutLoading ? t.redirectingStripe : t.btnConfirm }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Transition>
+  </Teleport>
+
+</div>
 </template>
 
 <style scoped>
@@ -331,5 +489,11 @@ useSeo({
 .cart-item-leave-to {
   opacity: 0;
   transform: translateX(-16px);
+}
+.fade-enter-active, .fade-leave-active {
+  transition: opacity 0.25s ease;
+}
+.fade-enter-from, .fade-leave-to {
+  opacity: 0;
 }
 </style>
