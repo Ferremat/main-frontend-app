@@ -5,7 +5,7 @@ const props = defineProps<{ selected: string; categories: { id: string; name: st
 const emit = defineEmits<{ select: [category: string] }>();
 
 const sectionTitle = computed(() =>
-  lang.value === 'es' ? 'Categorías principales' : 'Main categories'
+  lang.value === 'es' ? 'Categorías principal' : 'Main categories'
 );
 
 function selectCategory(name: string) {
