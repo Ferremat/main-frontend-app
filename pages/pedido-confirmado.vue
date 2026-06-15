@@ -69,10 +69,11 @@ async function saveShipping() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         id: orderId,
+        status: 1,                        // ← añadir esto
         shipping_address: shippingForm.value,
       }),
     });
-
+    
     if (res.ok) {
       shippingSuccess.value = true;
     } else {
