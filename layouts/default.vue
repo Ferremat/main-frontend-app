@@ -12,6 +12,7 @@ useAsyncData('layout-init', async () => {
 onMounted(() => {
   initTheme();
   initCart();
+  refreshNuxtData(['products', 'categories', 'currentUser']);
 });
 
 // Keep the <html> dark class in sync with the reactive theme state
