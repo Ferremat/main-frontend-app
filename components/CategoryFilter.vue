@@ -1,27 +1,12 @@
 <script setup lang="ts">
-const { fetchCategories } = useApi();
-const { lang, theme } = useSettings();
+const { lang } = useSettings();
 
-const props = defineProps<{ selected: string }>();
+const props = defineProps<{ selected: string; categories: { id: string; name: string }[] }>();
 const emit = defineEmits<{ select: [category: string] }>();
-
-const { data: categories, pending: loading } = useAsyncData(
-  'categories',
-  async () => {
-    try {
-      return await fetchCategories();
-    } catch {
-      return [];
-    }
-  },
-  { cache: false }
-);
 
 const sectionTitle = computed(() =>
   lang.value === 'es' ? 'Categorías principales' : 'Main categories'
 );
-
-const visibleCategories = computed(() => categories.value.slice(0, 5));
 
 function selectCategory(name: string) {
   emit('select', props.selected === name ? '' : name);
@@ -35,13 +20,9 @@ function selectCategory(name: string) {
         {{ sectionTitle }}
       </h2>
 
-      <div v-if="loading" class="flex flex-wrap justify-center gap-4">
-        <div v-for="n in 6" :key="n" class="h-9 w-28 bg-slate-200 rounded-lg animate-pulse"></div>
-      </div>
-
-      <div v-else class="flex flex-wrap justify-center gap-4">
+      <div class="flex flex-wrap justify-center gap-4">
         <button
-          v-for="cat in visibleCategories"
+          v-for="cat in props.categories"
           :key="cat.id"
           @click="selectCategory(cat.name)"
           :class="[
