@@ -1,20 +1,45 @@
-// Composable centralizado para manejo de errores en toda la aplicación
+import { AppError, parseError, logError, getErrorMessage } from '~/utils/errors';
 
-import { useRouter } from 'vue-router';
-import { parseError, logError, type AppError } from '~/utils/errors';
-
-interface ErrorNotification {
+export interface ErrorNotification {
   id: string;
   message: string;
   type: 'error' | 'warning' | 'info';
-  duration?: number;
+  duration: number;
 }
 
-export function useErrorHandler() {
-  const router = useRouter();
-  const notificationStack = useState<ErrorNotification[]>('error-notifications', () => []);
+export const useErrorHandler = () => {
+  const errors = useState<ErrorNotification[]>('errors', () => []);
+  const { lang } = useSettings();
 
-  function handleError(
+  const generateId = () => Math.random().toString(36).substring(7);
+
+  const showErrorNotification = (
+    message: string,
+    type: 'error' | 'warning' | 'info' = 'error',
+    duration = 5000
+  ) => {
+    const id = generateId();
+    errors.value.push({ id, message, type, duration });
+
+    if (duration > 0) {
+      setTimeout(() => removeNotification(id), duration);
+    }
+
+    return id;
+  };
+
+  const removeNotification = (id: string) => {
+    const index = errors.value.findIndex((e) => e.id === id);
+    if (index !== -1) {
+      errors.value.splice(index, 1);
+    }
+  };
+
+  const clearNotifications = () => {
+    errors.value = [];
+  };
+
+  const handleError = (
     error: any,
     options?: {
       context?: string;
@@ -22,71 +47,36 @@ export function useErrorHandler() {
       redirect?: string;
       onError?: (error: AppError) => void;
     }
-  ): AppError {
-    const appError = parseError(error);
-    const context = options?.context || 'unknown';
+  ) => {
+    const appError = error instanceof AppError ? error : parseError(error);
 
-    // Loguear el error
-    logError(error, context);
+    // Log error
+    logError(appError, options?.context);
 
-    // Manejar notificación
+    // Show notification
     if (options?.showNotification !== false) {
-      showErrorNotification(appError.message);
+      const message = getErrorMessage(appError, lang.value);
+      showErrorNotification(message, 'error');
     }
 
-    // Ejecutar callback personalizado
+    // Call callback
     if (options?.onError) {
       options.onError(appError);
     }
 
-    // Redirigir si es necesario
-    if (options?.redirect) {
-      if (appError.statusCode === 401) {
-        // Redirigir a login si no autenticado
-        router.push('/login');
-      } else if (options.redirect) {
-        router.push(options.redirect);
-      }
+    // Redirect if needed (e.g., 401 → login)
+    if (options?.redirect && appError.statusCode === 401) {
+      navigateTo(options.redirect);
     }
 
     return appError;
-  }
-
-  function showErrorNotification(message: string, type: 'error' | 'warning' | 'info' = 'error') {
-    const id = `error-${Date.now()}`;
-    const notification: ErrorNotification = {
-      id,
-      message,
-      type,
-      duration: 5000,
-    };
-
-    notificationStack.value.push(notification);
-
-    // Auto-remover después del duration
-    if (notification.duration) {
-      setTimeout(() => {
-        removeNotification(id);
-      }, notification.duration);
-    }
-  }
-
-  function removeNotification(id: string) {
-    const index = notificationStack.value.findIndex((n) => n.id === id);
-    if (index > -1) {
-      notificationStack.value.splice(index, 1);
-    }
-  }
-
-  function clearNotifications() {
-    notificationStack.value = [];
-  }
+  };
 
   return {
-    handleError,
+    errors: readonly(errors),
     showErrorNotification,
     removeNotification,
     clearNotifications,
-    notifications: readonly(notificationStack),
+    handleError,
   };
-}
+};

@@ -36,7 +36,7 @@ const subtitleEnd = computed(() =>
   <div class="relative h-[420px] w-full overflow-hidden">
     <!-- Background image -->
     <div
-      class="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1581244277943-fe4a9c777189?auto=format&fit=crop&q=80&w=2070')] bg-cover bg-center scale-105"
+      class="absolute inset-0 bg-gradient-to-r from-ferremat-blue to-ferremat-blue/60 scale-105"
     ></div>
 
     <!-- Dark gradient overlay -->

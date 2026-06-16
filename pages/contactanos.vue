@@ -62,8 +62,7 @@ useSeo({
 
     <!-- Hero Banner -->
     <div class="relative h-64 overflow-hidden">
-      <div class="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1588421357574-87938a86fa28?auto=format&fit=crop&q=80&w=2070')] bg-cover bg-center scale-105" />
-      <div class="absolute inset-0 bg-gradient-to-r from-ferremat-blue/90 via-ferremat-blue/70 to-ferremat-blue/40" />
+      <div class="absolute inset-0 bg-gradient-to-r from-ferremat-blue via-ferremat-blue/70 to-ferremat-blue/40 scale-105" />
       <div class="relative h-full flex flex-col items-center justify-center text-center px-6">
         <span class="text-ferremat-orange font-bold uppercase tracking-widest text-sm mb-3">{{ t.pageTag }}</span>
         <h1 class="text-white text-4xl md:text-5xl font-extrabold drop-shadow-lg">{{ t.pageTitle }}</h1>
@@ -135,10 +134,14 @@ useSeo({
           </div>
         </div>
 
-        <div class="flex-1 rounded-2xl border shadow-sm overflow-hidden min-h-48 transition-colors duration-300" :class="cardBg">
-          <iframe
-            src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3763.3!2d-99.1332!3d19.4284!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMTnCsDI1JzQyLjMiTiA5OcKwMDcnNTkuNSJX!5e0!3m2!1ses!2smx!4v0000000000"
-            width="100%" height="100%" style="min-height:200px; border:0;" allowfullscreen loading="lazy" referrerpolicy="no-referrer-when-downgrade" class="w-full h-full" />
+        <div class="flex-1 rounded-2xl border shadow-sm overflow-hidden min-h-48 transition-colors duration-300 bg-gradient-to-br from-ferremat-blue/10 to-ferremat-orange/10 flex items-center justify-center" :class="cardBg">
+          <div class="text-center">
+            <div class="w-16 h-16 bg-ferremat-blue/20 rounded-full flex items-center justify-center mx-auto mb-3">
+              <MapPin class="w-8 h-8 text-ferremat-blue" />
+            </div>
+            <p class="text-sm font-medium" :class="heading">{{ lang === 'es' ? 'Ubicación en el Mapa' : 'Location on Map' }}</p>
+            <p class="text-xs mt-1" :class="subtext">Av. Principal 1234, Zona Industrial</p>
+          </div>
         </div>
 
         <div class="bg-ferremat-blue rounded-2xl p-6 flex items-center justify-between">

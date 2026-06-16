@@ -3,8 +3,6 @@ import { ref, computed } from 'vue';
 import { Mail, Lock, Eye, EyeOff, UserPlus, Hammer, ArrowLeft } from 'lucide-vue-next';
 
 const { lang, theme } = useSettings();
-const { login } = useAuth();
-const router = useRouter();
 
 const form = ref({ email: '', password: '', confirmPassword: '', fullName: '' });
 const showPassword = ref(false);
@@ -12,6 +10,7 @@ const showConfirmPassword = ref(false);
 const loading = ref(false);
 const error = ref('');
 const agreeTerms = ref(false);
+const registered = ref(false);
 
 async function handleRegister() {
   error.value = '';
@@ -48,9 +47,10 @@ async function handleRegister() {
       return;
     }
 
-    const userData = await response.json();
-    login({ name: userData.name, email: userData.email });
-    router.push('/');
+    // Cuenta creada, pero pendiente de verificación por email.
+    // No iniciamos sesión automáticamente.
+    registered.value = true;
+    loading.value = false;
   } catch (err) {
     error.value = lang.value === 'es' ? 'Error al conectar con el servidor' : 'Error connecting to server';
     loading.value = false;
@@ -141,7 +141,7 @@ useSeo({
         </Transition>
 
         <!-- Form -->
-        <form @submit.prevent="handleRegister" class="space-y-5">
+        <form v-if="!registered" @submit.prevent="handleRegister" class="space-y-5">
           <div>
             <label for="register-name" class="block text-sm font-semibold mb-1" :class="labelCls">{{ t.labelName }}</label>
             <div class="relative">
@@ -208,6 +208,21 @@ useSeo({
             {{ loading ? t.btnLoading : t.btnRegister }}
           </button>
         </form>
+
+        <!-- Success: cuenta creada, pendiente de verificación -->
+        <div v-else class="text-center py-4">
+          <div class="w-14 h-14 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Mail class="w-7 h-7 text-green-600" stroke-width="2" />
+          </div>
+          <h3 class="text-lg font-extrabold mb-2" :class="heading">
+            {{ lang === 'es' ? '¡Revisa tu correo!' : 'Check your email!' }}
+          </h3>
+          <p class="text-sm" :class="dividerTxt">
+            {{ lang === 'es'
+              ? `Te hemos enviado un enlace de verificación a ${form.email}. Confírmalo para poder iniciar sesión.`
+              : `We've sent a verification link to ${form.email}. Confirm it to be able to sign in.` }}
+          </p>
+        </div>
 
         <!-- Divider -->
         <div class="flex items-center gap-3 my-6">

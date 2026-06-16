@@ -1,24 +1,7 @@
 pipeline {
-    agent none
-
-    triggers {
-        githubPush()
-    }
-
-    environment {
-        DOCKER_USER  = 'iferlop'
-        APP_NAME     = 'main-frontend-app'
-        NAMESPACE    = 'ferremat-deploy'
-        VALUES_FILE  = 'deploy/kubernetes/charts/main-frontend-app/values.yaml'
-        GIT_REPO_URL = 'https://github.com/Ferremat/main-frontend-app.git'
-    }
-
-    stages {
-
-        stage('Build & Push') {
-            agent {
-                kubernetes {
-                    yaml """
+    agent {
+        kubernetes {
+            yaml """
 apiVersion: v1
 kind: Pod
 spec:
@@ -26,130 +9,147 @@ spec:
   containers:
   - name: kaniko
     image: gcr.io/kaniko-project/executor:debug
-    command: ["/busybox/cat"]
-    tty: true
-    resources:
-      requests:
-        memory: "2Gi"
-        cpu: "1"
-      limits:
-        memory: "4Gi"
-        cpu: "2"
+    command:
+    - sleep
+    args:
+    - 99999
     volumeMounts:
-    - name: kaniko-secret
-      mountPath: /kaniko/.docker/config.json
-      subPath: .dockerconfigjson
-    env:
-    - name: DOCKER_CONFIG
-      value: /kaniko/.docker
+    - name: docker-secret
+      mountPath: /kaniko/.docker
+  - name: kubectl
+    image: alpine:latest
+    command:
+    - sh
+    args:
+    - -c
+    - apk add --no-cache kubectl && sleep 99999
   volumes:
-  - name: kaniko-secret
+  - name: docker-secret
     secret:
       secretName: dockerhub-secret
       items:
       - key: .dockerconfigjson
-        path: .dockerconfigjson
-  nodeSelector:
-    kubernetes.io/os: linux
-  restartPolicy: Never
+        path: config.json
 """
-                }
-            }
+        }
+    }
+
+    environment {
+        DOCKER_REPO = 'iferlop/main-frontend-app'
+        DOCKER_IMAGE_TAG = "${BUILD_NUMBER}-${GIT_COMMIT.take(7)}"
+    }
+
+    options {
+        timeout(time: 1, unit: 'HOURS')
+        buildDiscarder(logRotator(numToKeepStr: '10'))
+    }
+
+    stages {
+        stage('Debug Info') {
             steps {
+                echo "========== DEBUG INFO =========="
+                echo "Workspace: ${WORKSPACE}"
+                echo "Build Number: ${BUILD_NUMBER}"
+                echo "Git Commit: ${GIT_COMMIT}"
+                echo "Git Branch: ${GIT_BRANCH}"
+                echo "Docker Repo: ${DOCKER_REPO}"
+                echo "Image Tag: ${DOCKER_IMAGE_TAG}"
+                sh 'echo "Context: $(pwd)" && ls -la'
+                echo "=============================="
+            }
+        }
+
+        stage('Checkout') {
+            steps {
+                echo "📥 Clonando repositorio..."
                 checkout scm
+                sh 'echo "Checkout completado"; ls -la | head -20'
+            }
+        }
+
+        stage('Verify Dockerfile') {
+            steps {
+                echo "🔍 Verificando Dockerfile..."
+                sh '''
+                    if [ -f Dockerfile ]; then
+                        echo "✓ Dockerfile encontrado"
+                        head -10 Dockerfile
+                    else
+                        echo "❌ ERROR: Dockerfile NO encontrado"
+                        echo "Contenido actual:"
+                        ls -la
+                        exit 1
+                    fi
+                '''
+            }
+        }
+
+        stage('Build Image') {
+            steps {
                 container('kaniko') {
-                    script {
-                        env.IMAGE_TAG = env.GIT_COMMIT.take(7)
-                    }
+                    echo "🚀 Construyendo imagen Docker..."
                     sh """
-                    set -e
-                    echo "Building ${APP_NAME}..."
-                    echo "Image tag: ${IMAGE_TAG}"
-                    /kaniko/executor \\
-                        --context \$(pwd) \\
-                        --dockerfile Dockerfile \\
-                        --destination ${DOCKER_USER}/${APP_NAME}:latest \\
-                        --destination ${DOCKER_USER}/${APP_NAME}:${IMAGE_TAG} \\
-                        --cache=true \\
-                        --cache-repo=${DOCKER_USER}/${APP_NAME}
-                    echo "Build completed: ${DOCKER_USER}/${APP_NAME}:${IMAGE_TAG}"
+                        echo "Verificando credenciales..."
+                        ls -la /kaniko/.docker/
+
+                        echo "Iniciando Kaniko executor..."
+                        /kaniko/executor \\
+                            --dockerfile Dockerfile \\
+                            --context . \\
+                            --destination ${DOCKER_REPO}:${DOCKER_IMAGE_TAG} \\
+                            --destination ${DOCKER_REPO}:latest \\
+                            --cache=false \\
+                            -v info
                     """
                 }
             }
         }
 
-        stage('Update values.yaml & Push to Git') {
-            agent {
-                kubernetes {
-                    yaml """
-apiVersion: v1
-kind: Pod
-spec:
-  serviceAccountName: jenkins
-  containers:
-  - name: tools
-    image: alpine/k8s:1.29.2
-    command: ["cat"]
-    tty: true
-    resources:
-      requests:
-        memory: "128Mi"
-        cpu: "100m"
-      limits:
-        memory: "256Mi"
-        cpu: "200m"
-  nodeSelector:
-    kubernetes.io/os: linux
-  restartPolicy: Never
-"""
-                }
-            }
+        stage('Verify Image') {
             steps {
-                checkout scm
-                container('tools') {
-                    withCredentials([usernamePassword(
-                        credentialsId: 'github-creds',
-                        usernameVariable: 'GIT_USER',
-                        passwordVariable: 'GIT_TOKEN'
-                    )]) {
-                        sh """
-                        set -e
+                echo "✓ Imagen construida exitosamente:"
+                echo "  - ${DOCKER_REPO}:${DOCKER_IMAGE_TAG}"
+                echo "  - ${DOCKER_REPO}:latest"
+            }
+        }
 
-                        git config --global --add safe.directory \$(pwd)
-                        git config --global user.email "jenkins@ferremat.es"
-                        git config --global user.name "Jenkins CI"
+        stage('Restart Deployment') {
+            steps {
+                echo "🔄 Reiniciando pods con imagen nueva..."
+                container('kubectl') {
+                    sh '''
+                        DEPLOYMENT="main-frontend-app-deployment"
+                        NAMESPACE="ferremat-deploy"
 
-                        REPO_NO_SCHEME=\$(echo "${GIT_REPO_URL}" | sed 's|https://||')
+                        echo "Reiniciando deployment: ${DEPLOYMENT}"
+                        kubectl rollout restart deployment/${DEPLOYMENT} -n ${NAMESPACE}
 
-                        git fetch https://\${GIT_USER}:\${GIT_TOKEN}@\${REPO_NO_SCHEME} develop
-                        git checkout -B develop FETCH_HEAD
+                        echo "Esperando a que los pods se estabilicen..."
+                        kubectl rollout status deployment/${DEPLOYMENT} -n ${NAMESPACE} --timeout=5m
 
-                        echo "Updating image tag to ${IMAGE_TAG} in ${VALUES_FILE}..."
-                        sed -i 's|^    tag:.*|    tag: ${IMAGE_TAG}|' ${VALUES_FILE}
-
-                        echo "--- values.yaml after update ---"
-                        cat ${VALUES_FILE}
-
-                        git add ${VALUES_FILE}
-                        git diff --cached --quiet || git commit -m "ci: update ${APP_NAME} image to ${IMAGE_TAG} [skip ci]"
-
-                        git push https://\${GIT_USER}:\${GIT_TOKEN}@\${REPO_NO_SCHEME} HEAD:develop
-
-                        echo "values.yaml pushed — ArgoCD will sync automatically"
-                        """
-                    }
+                        echo "✓ Deployment reiniciado exitosamente"
+                    '''
                 }
             }
         }
 
+        stage('Verify Rollout') {
+            steps {
+                echo "✅ Pipeline completado exitosamente"
+                echo "Los nuevos pods están corriendo con la imagen latest"
+            }
+        }
     }
 
     post {
+        always {
+            echo "Pipeline finalizado"
+        }
         success {
-            echo "Pipeline completed: image published and values.yaml updated."
+            echo "✅ BUILD EXITOSO"
         }
         failure {
-            echo "Pipeline failed. Check the logs."
+            echo "❌ BUILD FALLIDO - Revisa los logs arriba para detalles"
         }
     }
 }
