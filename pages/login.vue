@@ -35,7 +35,7 @@ async function handleLogin() {
     }
 
     const userData = await response.json();
-    login({ name: userData.name, email: userData.email });
+    login({ id: userData.id, name: userData.name, email: userData.email });
     router.push('/');
   } catch (err) {
     error.value = lang.value === 'es' ? 'Error al conectar con el servidor' : 'Error connecting to server';

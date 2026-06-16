@@ -9,7 +9,6 @@ import {
   AlertTriangle,
   Plus,
   Minus,
-  Share2,
   Truck,
   Shield,
   LogIn,
@@ -21,62 +20,44 @@ const router = useRouter();
 const { lang, theme } = useSettings();
 const { addItem } = useCart();
 const { isLoggedIn } = useAuth();
-const { fetchProductById, fetchProducts } = useApi();
+const { fetchProductById } = useApi();
 
-const product  = ref<Product | null>(null);
-const loading  = ref(true);
-const error    = ref<string | null>(null);
 const quantity = ref(1);
-const added    = ref(false); // feedback tras añadir al carrito
+const added    = ref(false);
 
-// ── Fetch ────────────────────────────────────────────────────────────────────
-onMounted(async () => {
-  try {
-    const slug = route.params.id as string;
-    const idFromQuery = (route.query.id as string) || null;
+// ── Fetch con useAsyncData (SSR compatible) ────────────────────────────────────
+const { data: product, pending: loading, error: fetchError } = useAsyncData(
+  () => `product-${route.query.id}`,
+  async () => {
+    let productId = route.query.id;
 
-    if (!slug && !idFromQuery) {
-      throw new Error('Product not found');
+    // Nuxt a veces devuelve query params como array
+    if (Array.isArray(productId)) {
+      productId = productId[0];
     }
 
-    let fetchedProduct: Product | null = null;
+    productId = productId as string;
 
-    // Intenta cargar por ID si viene en query params
-    if (idFromQuery) {
-      try {
-        fetchedProduct = await fetchProductById(idFromQuery);
-      } catch {
-        // Si falla, intenta por slug
-        fetchedProduct = null;
-      }
+    if (!productId) {
+      throw new Error('Product ID is missing');
     }
 
-    // Si no hay producto y hay slug, busca en todos los productos
-    if (!fetchedProduct && slug) {
-      const allProducts = await fetchProducts();
-      const slugNormalized = slug.toLowerCase().replace(/[^\w-]/g, '');
-      fetchedProduct = allProducts.find(p =>
-        p.name
-          .toLowerCase()
-          .trim()
-          .replace(/\s+/g, '-')
-          .replace(/[^\w-]/g, '') === slugNormalized
-      ) || null;
+    try {
+      const fetchedProduct = await fetchProductById(productId);
+      return fetchedProduct;
+    } catch (err: any) {
+      console.error('Error fetching product:', err);
+      throw new Error(err?.message || 'Product not found');
     }
+  },
+  { watch: [() => route.query.id] }
+);
 
-    if (!fetchedProduct) {
-      throw new Error('Product not found');
-    }
-
-    product.value = fetchedProduct;
-  } catch (err) {
-    const errorMessage = err instanceof Error ? err.message : '';
-    error.value = lang.value === 'es'
-      ? (errorMessage.includes('not found') ? 'Producto no encontrado.' : 'No se pudo cargar el producto.')
-      : (errorMessage.includes('not found') ? 'Product not found.' : 'Product could not be loaded.');
-  } finally {
-    loading.value = false;
-  }
+const error = computed(() => {
+  if (!fetchError.value) return null;
+  return lang.value === 'es'
+    ? 'No se pudo cargar el producto.'
+    : 'Product could not be loaded.';
 });
 
 // ── Computed helpers ─────────────────────────────────────────────────────────
@@ -123,7 +104,6 @@ const cardBg  = computed(() => theme.value === 'dark' ? 'bg-slate-800 border-sla
 const headTxt = computed(() => theme.value === 'dark' ? 'text-gray-100' : 'text-gray-800');
 const subTxt  = computed(() => theme.value === 'dark' ? 'text-slate-400' : 'text-gray-500');
 const divider = computed(() => theme.value === 'dark' ? 'border-slate-700' : 'border-gray-200');
-const badgeBg = computed(() => theme.value === 'dark' ? 'bg-slate-700 text-slate-300' : 'bg-slate-100 text-slate-600');
 
 // ── SEO ──────────────────────────────────────────────────────────────────────
 useHead({
@@ -275,7 +255,7 @@ useHead({
                 <p class="text-sm font-bold truncate" :class="headTxt">{{ product.id }}</p>
               </div>
             </div>
-            <!-- Price per unit -->
+            <!-- Warranty -->
             <div class="flex items-center gap-3 rounded-xl border p-3 transition-colors duration-300" :class="cardBg">
               <div class="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center flex-shrink-0">
                 <Shield class="w-4 h-4 text-emerald-500" stroke-width="2" />

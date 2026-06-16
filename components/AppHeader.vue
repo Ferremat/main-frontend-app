@@ -8,7 +8,6 @@ import {
 const { lang, theme, toggleLang, toggleTheme } = useSettings();
 const { isLoggedIn, firstName, initials, logout } = useAuth();
 const { totalItems } = useCart();
-const { resetTour } = useTour();
 const router = useRouter();
 
 const navLinks = computed(() => [
@@ -318,7 +317,7 @@ onBeforeUnmount(() => document.removeEventListener('click', handleOutsideClick))
               <!-- Tutorial / Tour Button -->
               <button
                 id="settings-tour-btn"
-                @click="resetTour(); settingsOpen = false"
+                @click="settingsOpen = false"
                 class="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-purple-50 dark:hover:bg-purple-950/30 transition-colors group text-left"
               >
                 <div class="w-9 h-9 rounded-xl bg-purple-100 dark:bg-purple-950/40 flex items-center justify-center flex-shrink-0 group-hover:bg-purple-200 dark:group-hover:bg-purple-950/60 transition-colors">

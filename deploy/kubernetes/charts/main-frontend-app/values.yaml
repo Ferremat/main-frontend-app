@@ -3,13 +3,15 @@ enabled: true
 app:
   image:
     repository: iferlop/main-frontend-app
-    tag: 33-84e9552
+    tag: 51-03bd900
     pullPolicy: Always
   containerPort: 3000
   container:
     name: main-frontend-app
     Port: 3000
     replicas: 1
+  podAnnotations:
+    restartedAt: "commit"
 
 service:
   type: ClusterIP
@@ -23,4 +25,4 @@ ingress:
   pathType: Prefix
 
 env:
-  NUXT_PUBLIC_API_URL: "http://api.ferremat.es/"
+  NUXT_PUBLIC_API_URL: "https://api.ferremat.es/"

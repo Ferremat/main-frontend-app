@@ -16,7 +16,7 @@ export function useSettings() {
   /** Alterna entre tema claro y oscuro y lo aplica al <html> */
   function toggleTheme() {
     theme.value = theme.value === 'light' ? 'dark' : 'light';
-    if (import.meta.client) {
+    if (process.client) {
       document.documentElement.classList.toggle('dark', theme.value === 'dark');
       localStorage.setItem('ferremat-theme', theme.value);
     }
@@ -24,7 +24,7 @@ export function useSettings() {
 
   /** Inicializa el tema desde localStorage (llamar en el layout) */
   function initTheme() {
-    if (import.meta.client) {
+    if (process.client) {
       const saved = localStorage.getItem('ferremat-theme') as Theme | null;
       if (saved) {
         theme.value = saved;

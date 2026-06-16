@@ -25,13 +25,8 @@ const t = computed(() => ({
 }));
 
 function goToDetail() {
-  const slug = props.title
-    .toLowerCase()
-    .trim()
-    .replace(/\s+/g, '-')
-    .replace(/[^\w-]/g, '');
   router.push({
-    path: `/productos/${slug}`,
+    path: '/detalles',
     query: { id: props.id }
   });
 }
