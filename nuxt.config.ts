@@ -93,20 +93,24 @@ export default defineNuxtConfig({
 
   // Performance & Caching
   routeRules: {
-    '/': { swr: 3600 }, // Cambio a SWR para evitar SSR issues con useState
+    '/': { prerender: true },
     '/conocenos': { prerender: true },
     '/contactanos': { prerender: true },
     '/politicas': { prerender: true },
     '/carrito': { swr: 3600 },
     '/login': { swr: 3600 },
-    '/productos/**': { swr: 3600 }, // Product detail pages — SWR para evitar SSR issues
+    '/productos/**': { swr: 3600 },
+    '/pedido-confirmado': { ssr: false },
+    '/perfil': { ssr: false },
   },
 
-  // Compression
+  // Compression & Prerendering
   nitro: {
     prerender: {
-      crawlLinks: true,
-      routes: ['/sitemap.xml', '/robots.txt'],
+      crawlLinks: false,
+      routes: ['/', '/conocenos', '/contactanos', '/politicas', '/sitemap.xml', '/robots.txt'],
+      ignore: ['/carrito', '/login'],
     },
+    minify: true,
   },
 })

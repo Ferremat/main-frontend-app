@@ -1,5 +1,3 @@
-// Sistema centralizado de manejo de errores para Ferremat
-
 export enum ErrorType {
   NETWORK = 'NETWORK',
   VALIDATION = 'VALIDATION',
@@ -23,112 +21,116 @@ export class AppError extends Error {
 }
 
 export function parseError(error: any): AppError {
-  // Si ya es un AppError, devolverlo tal cual
-  if (error instanceof AppError) return error;
-
-  // Error de fetch/red
-  if (error instanceof TypeError && error.message.includes('fetch')) {
+  // Handle fetch/network errors
+  if (error instanceof TypeError && error.message === 'Failed to fetch') {
     return new AppError(
       ErrorType.NETWORK,
-      'Error de conexión. Verifica tu conexión a internet.',
-      0,
-      error
-    );
-  }
-
-  // Error de validación
-  if (error?.name === 'ZodError') {
-    return new AppError(
-      ErrorType.VALIDATION,
-      'Los datos proporcionados no son válidos.',
-      400,
-      error
-    );
-  }
-
-  // HTTP errors con status code
-  if (error?.statusCode) {
-    const statusCode = error.statusCode;
-
-    if (statusCode === 401 || statusCode === 403) {
-      return new AppError(
-        statusCode === 401 ? ErrorType.AUTHENTICATION : ErrorType.AUTHORIZATION,
-        statusCode === 401 ? 'No autenticado. Por favor, inicia sesión.' : 'No tienes permiso para realizar esta acción.',
-        statusCode,
-        error
-      );
-    }
-
-    if (statusCode === 404) {
-      return new AppError(
-        ErrorType.NOT_FOUND,
-        'El recurso solicitado no existe.',
-        statusCode,
-        error
-      );
-    }
-
-    if (statusCode >= 500) {
-      return new AppError(
-        ErrorType.SERVER,
-        'Error en el servidor. Por favor, intenta más tarde.',
-        statusCode,
-        error
-      );
-    }
-
-    if (statusCode >= 400) {
-      return new AppError(
-        ErrorType.VALIDATION,
-        error.message || 'Error en la solicitud.',
-        statusCode,
-        error
-      );
-    }
-  }
-
-  // Error genérico de objeto Error
-  if (error instanceof Error) {
-    return new AppError(
-      ErrorType.UNKNOWN,
-      error.message || 'Un error desconocido ocurrió.',
+      'Error de conexión. Intenta de nuevo.',
       undefined,
       error
     );
   }
 
-  // String o valor primitivo
-  if (typeof error === 'string') {
-    return new AppError(ErrorType.UNKNOWN, error);
+  // Handle HTTP errors
+  if (error?.response) {
+    const status = error.response.status;
+    const data = error.response.data;
+
+    if (status === 401 || status === 403) {
+      return new AppError(
+        status === 401 ? ErrorType.AUTHENTICATION : ErrorType.AUTHORIZATION,
+        status === 401 ? 'Sesión expirada' : 'No tienes permiso',
+        status,
+        error
+      );
+    }
+
+    if (status === 404) {
+      return new AppError(
+        ErrorType.NOT_FOUND,
+        'Recurso no encontrado',
+        404,
+        error
+      );
+    }
+
+    if (status === 400) {
+      return new AppError(
+        ErrorType.VALIDATION,
+        data?.message || 'Datos inválidos',
+        400,
+        error
+      );
+    }
+
+    if (status >= 500) {
+      return new AppError(
+        ErrorType.SERVER,
+        'Error del servidor. Intenta más tarde.',
+        status,
+        error
+      );
+    }
   }
 
+  // Handle JSON parse errors
+  if (error instanceof SyntaxError && error.message.includes('JSON')) {
+    return new AppError(
+      ErrorType.SERVER,
+      'Respuesta inválida del servidor',
+      undefined,
+      error
+    );
+  }
+
+  // Default
   return new AppError(
     ErrorType.UNKNOWN,
-    'Un error desconocido ocurrió.',
+    error?.message || 'Error desconocido',
     undefined,
     error
   );
 }
 
-export function getErrorMessage(error: any): string {
-  const appError = parseError(error);
-  return appError.message;
+export function logError(error: AppError, context?: string): void {
+  console.error(`[${error.type}]${context ? ` ${context}` : ''}:`, {
+    message: error.message,
+    statusCode: error.statusCode,
+    originalError: error.originalError,
+  });
 }
 
-export function logError(error: any, context?: string): void {
-  const appError = parseError(error);
-
-  const logData = {
-    timestamp: new Date().toISOString(),
-    type: appError.type,
-    message: appError.message,
-    statusCode: appError.statusCode,
-    context,
-    stack: appError.originalError?.stack,
+export function getErrorMessage(error: AppError, lang: string = 'es'): string {
+  const messages: Record<ErrorType, { es: string; en: string }> = {
+    [ErrorType.NETWORK]: {
+      es: 'Error de conexión. Revisa tu internet e intenta de nuevo.',
+      en: 'Connection error. Check your internet and try again.',
+    },
+    [ErrorType.VALIDATION]: {
+      es: 'Datos inválidos. Revisa el formulario.',
+      en: 'Invalid data. Check the form.',
+    },
+    [ErrorType.AUTHENTICATION]: {
+      es: 'Tu sesión ha expirado. Inicia sesión de nuevo.',
+      en: 'Your session has expired. Sign in again.',
+    },
+    [ErrorType.AUTHORIZATION]: {
+      es: 'No tienes permiso para acceder a esto.',
+      en: 'You do not have permission to access this.',
+    },
+    [ErrorType.NOT_FOUND]: {
+      es: 'Recurso no encontrado.',
+      en: 'Resource not found.',
+    },
+    [ErrorType.SERVER]: {
+      es: 'Error del servidor. Intenta más tarde.',
+      en: 'Server error. Try again later.',
+    },
+    [ErrorType.UNKNOWN]: {
+      es: 'Algo salió mal. Intenta de nuevo.',
+      en: 'Something went wrong. Try again.',
+    },
   };
 
-  console.error('[AppError]', logData);
-
-  // Aquí puedes enviar a un servicio de logging (Sentry, etc.)
-  // sendToLoggingService(logData);
+  return messages[error.type]?.[lang as 'es' | 'en'] || error.message;
 }
