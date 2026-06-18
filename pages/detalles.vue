@@ -278,7 +278,7 @@ useHead({
                 @click="dec"
                 :disabled="quantity <= 1"
                 class="px-4 py-3 hover:bg-ferremat-orange/10 transition-colors disabled:opacity-40"
-                aria-label="Reducir cantidad"
+                :aria-label="lang === 'es' ? 'Reducir cantidad' : 'Decrease quantity'"
               >
                 <Minus class="w-4 h-4" :class="headTxt" stroke-width="2.5" />
               </button>
@@ -289,7 +289,7 @@ useHead({
                 @click="inc"
                 :disabled="quantity >= stock"
                 class="px-4 py-3 hover:bg-ferremat-orange/10 transition-colors disabled:opacity-40"
-                aria-label="Aumentar cantidad"
+                :aria-label="lang === 'es' ? 'Aumentar cantidad' : 'Increase quantity'"
               >
                 <Plus class="w-4 h-4" :class="headTxt" stroke-width="2.5" />
               </button>

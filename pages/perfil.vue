@@ -70,6 +70,7 @@ const translations = computed(() => ({
   btnSecurity: lang.value === 'es' ? 'Configuración de Seguridad' : 'Security Settings',
   successMessage: lang.value === 'es' ? 'Perfil actualizado correctamente' : 'Profile updated successfully',
   memberSince: lang.value === 'es' ? 'Miembro desde' : 'Member since',
+  saving: lang.value === 'es' ? 'Guardando...' : 'Saving...',
 }));
 
 const pageBg = computed(() => theme.value === 'dark' ? 'bg-slate-900' : 'bg-gray-50');
@@ -295,7 +296,7 @@ useSeo({
             >
               <span v-if="isSaving" class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
               <Save v-else class="w-4 h-4" stroke-width="2" />
-              {{ isSaving ? 'Guardando...' : translations.btnSave }}
+              {{ isSaving ? translations.saving : translations.btnSave }}
             </button>
           </div>
         </div>

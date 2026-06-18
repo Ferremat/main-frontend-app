@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import {
-  Search, ShoppingBag, User, Settings, Hammer,
+  Search, ShoppingCart, User, Settings, Hammer,
   Languages, Sun, Moon, FileText, LogOut, ChevronDown, Menu, X,
 } from 'lucide-vue-next';
 
@@ -133,13 +133,13 @@ onBeforeUnmount(() => document.removeEventListener('click', handleOutsideClick))
         </Transition>
       </div>
 
-      <!-- Shopping bag — navega al carrito + badge contador -->
+      <!-- Shopping cart — navega al carrito + badge contador -->
       <NuxtLink
         to="/carrito"
         class="relative hover:text-white/80 transition-colors"
         :aria-label="lang === 'es' ? 'Mi carrito' : 'My cart'"
       >
-        <ShoppingBag class="w-8 h-8" stroke-width="2" />
+        <ShoppingCart class="w-8 h-8" stroke-width="2" />
         <!-- Badge -->
         <Transition name="badge">
           <span
