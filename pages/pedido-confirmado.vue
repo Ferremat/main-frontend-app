@@ -50,10 +50,10 @@ onMounted(async () => {
       orderConfirmed.value = true;
     } else {
       const data = await res.json().catch(() => ({}));
-      orderError.value = data.message || 'No se pudo confirmar el pedido';
+      orderError.value = data.message || (lang.value === 'es' ? 'No se pudo confirmar el pedido' : 'Could not confirm the order');
     }
   } catch {
-    orderError.value = 'Error de conexión al confirmar el pedido';
+    orderError.value = lang.value === 'es' ? 'Error de conexión al confirmar el pedido' : 'Connection error while confirming the order';
   }
 });
 
@@ -78,10 +78,10 @@ async function saveShipping() {
       shippingSuccess.value = true;
     } else {
       const data = await res.json().catch(() => ({}));
-      shippingError.value = data.message || 'Error al guardar la dirección';
+      shippingError.value = data.message || (lang.value === 'es' ? 'Error al guardar la dirección' : 'Error saving the address');
     }
   } catch {
-    shippingError.value = 'Error de conexión';
+    shippingError.value = lang.value === 'es' ? 'Error de conexión' : 'Connection error';
   } finally {
     shippingLoading.value = false;
   }

@@ -168,7 +168,7 @@ useSeo({
     <!-- ── EMPTY STATE ──────────────────────────────────────────────────────── -->
     <div v-if="items.length === 0" class="max-w-lg mx-auto px-6 py-20 text-center">
       <div class="w-28 h-28 bg-ferremat-orange/10 rounded-full flex items-center justify-center mx-auto mb-6">
-        <ShoppingBag class="w-14 h-14 text-ferremat-orange" stroke-width="1.5" />
+        <ShoppingCart class="w-14 h-14 text-ferremat-orange" stroke-width="1.5" />
       </div>
       <h2 class="text-2xl font-extrabold mb-2" :class="headTxt">{{ t.empty }}</h2>
       <p class="mb-8" :class="subTxt">{{ t.emptySub }}</p>
@@ -237,7 +237,7 @@ useSeo({
                   <button
                     @click="removeItem(item.id)"
                     class="text-gray-300 hover:text-red-400 transition-colors flex-shrink-0 mt-0.5"
-                    aria-label="Eliminar"
+                    :aria-label="lang === 'es' ? 'Eliminar' : 'Remove'"
                   >
                     <Trash2 class="w-4 h-4" stroke-width="2" />
                   </button>
@@ -250,7 +250,7 @@ useSeo({
                     <button
                       @click="updateQuantity(item.id, item.quantity - 1)"
                       class="px-3 py-2 hover:bg-ferremat-orange/10 transition-colors"
-                      aria-label="Reducir cantidad"
+                      :aria-label="lang === 'es' ? 'Reducir cantidad' : 'Decrease quantity'"
                     >
                       <Minus class="w-3.5 h-3.5" stroke-width="2.5" />
                     </button>
@@ -258,7 +258,7 @@ useSeo({
                     <button
                       @click="updateQuantity(item.id, item.quantity + 1)"
                       class="px-3 py-2 hover:bg-ferremat-orange/10 transition-colors"
-                      aria-label="Aumentar cantidad"
+                      :aria-label="lang === 'es' ? 'Aumentar cantidad' : 'Increase quantity'"
                     >
                       <Plus class="w-3.5 h-3.5" stroke-width="2.5" />
                     </button>
@@ -325,7 +325,7 @@ useSeo({
               class="mt-5 w-full bg-ferremat-orange hover:bg-ferremat-orange/90 active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed text-white font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 transition-all duration-200 shadow-md shadow-ferremat-orange/20"
             >
               <span v-if="checkoutLoading" class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              <ShoppingBag v-else class="w-5 h-5" stroke-width="2" />
+              <ShoppingCart v-else class="w-5 h-5" stroke-width="2" />
               {{ checkoutLoading ? t.redirecting : t.checkout }}
             </button>
 

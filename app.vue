@@ -1,26 +1,13 @@
 <script setup lang="ts">
 import './main.css';
 
-const { initTheme, theme } = useSettings();
-
-onMounted(() => {
-  initTheme();
-  if (typeof window !== 'undefined') {
-    document.documentElement.classList.toggle('dark', theme.value === 'dark');
-  }
-});
-
-watch(theme, (newTheme) => {
-  if (typeof window !== 'undefined') {
-    document.documentElement.classList.toggle('dark', newTheme === 'dark');
-  }
-});
+// initTheme is called by the layout's useAsyncData + onMounted.
+// The inline <head> script (nuxt.config.ts) already applies the dark class
+// before first paint, so no FOUC here.
 </script>
 
 <template>
-  <div :class="{ dark: theme === 'dark' }">
-    <NuxtLayout>
-      <NuxtPage />
-    </NuxtLayout>
-  </div>
+  <NuxtLayout>
+    <NuxtPage />
+  </NuxtLayout>
 </template>

@@ -11,6 +11,14 @@ export default defineNuxtConfig({
       charset: 'utf-8',
       viewport: 'width=device-width, initial-scale=1',
       title: 'Ferremat - Ferretería Online | Herramientas y Materiales de Construcción',
+      // Apply saved theme class before first paint to avoid flash of unstyled content
+      script: [
+        {
+          innerHTML: `(function(){try{var t=localStorage.getItem('ferremat-theme');if(t==='dark')document.documentElement.classList.add('dark');}catch(e){}})();`,
+          tagPosition: 'head',
+          tagPriority: 'critical',
+        },
+      ],
       meta: [
         {
           name: 'description',
@@ -97,11 +105,14 @@ export default defineNuxtConfig({
     '/conocenos': { prerender: true },
     '/contactanos': { prerender: true },
     '/politicas': { prerender: true },
-    '/carrito': { swr: 3600 },
-    '/login': { swr: 3600 },
-    '/productos/**': { swr: 3600 },
-    '/pedido-confirmado': { ssr: false },
-    '/perfil': { ssr: false },
+    // User-specific pages must never be served from cache — all devices must
+    // receive a fresh render so they always run the latest deployed code.
+    '/carrito': { ssr: true, headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate' } },
+    '/login': { ssr: true, headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate' } },
+    '/registro': { ssr: true, headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate' } },
+    '/productos/**': { swr: 300 },
+    '/pedido-confirmado': { ssr: false, headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate' } },
+    '/perfil': { ssr: false, headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate' } },
   },
 
   // Compression & Prerendering
