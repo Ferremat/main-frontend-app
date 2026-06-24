@@ -104,13 +104,12 @@ spec:
 
         // Actualiza el tag en values.yaml y hace push a Git.
         // ArgoCD detecta el cambio y sincroniza automaticamente.
-        // REQUISITO: crear credencial en Jenkins con id 'github-pat'
-        //   (usuario GitHub + Personal Access Token con permiso Contents: write).
+        // Usa la misma credencial 'github-creds' configurada para el checkout SCM.
         stage('Update Helm Values') {
             when { environment name: 'IS_CI_COMMIT', value: 'false' }
             steps {
                 withCredentials([usernamePassword(
-                    credentialsId: 'github-pat',
+                    credentialsId: 'github-creds',
                     usernameVariable: 'GIT_USER',
                     passwordVariable: 'GIT_TOKEN'
                 )]) {
