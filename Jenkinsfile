@@ -16,13 +16,6 @@ spec:
     volumeMounts:
     - name: docker-secret
       mountPath: /kaniko/.docker
-  - name: kubectl
-    image: alpine:latest
-    command:
-    - sh
-    args:
-    - -c
-    - apk add --no-cache kubectl && sleep 99999
   volumes:
   - name: docker-secret
     secret:
@@ -35,8 +28,11 @@ spec:
     }
 
     environment {
-        DOCKER_REPO = 'iferlop/main-frontend-app'
+        DOCKER_REPO      = 'iferlop/main-frontend-app'
         DOCKER_IMAGE_TAG = "${BUILD_NUMBER}-${GIT_COMMIT.take(7)}"
+        HELM_VALUES_PATH = 'deploy/kubernetes/charts/main-frontend-app/values.yaml'
+        // Bandera para cortar el pipeline si fue disparado por un commit de CI
+        IS_CI_COMMIT     = 'false'
     }
 
     options {
@@ -45,54 +41,55 @@ spec:
     }
 
     stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        // Detecta si este build fue disparado por el commit que Jenkins mismo hizo
+        // para actualizar values.yaml. Si es así, marca IS_CI_COMMIT=true y los
+        // stages siguientes se saltan, evitando el loop infinito.
+        stage('Guard: Skip CI Commits') {
+            steps {
+                script {
+                    def commitAuthor = sh(returnStdout: true, script: 'git log -1 --format="%ae"').trim()
+                    def commitMsg    = sh(returnStdout: true, script: 'git log -1 --format="%s"').trim()
+
+                    if (commitAuthor == 'jenkins@ci.ferremat.es' || commitMsg.contains('[skip ci]')) {
+                        env.IS_CI_COMMIT = 'true'
+                        currentBuild.description = "Skipped: CI commit by ${commitAuthor}"
+                        echo "Commit generado por CI — saltando build para evitar loop."
+                    }
+                }
+            }
+        }
+
         stage('Debug Info') {
+            when { environment name: 'IS_CI_COMMIT', value: 'false' }
             steps {
                 echo "========== DEBUG INFO =========="
-                echo "Workspace: ${WORKSPACE}"
-                echo "Build Number: ${BUILD_NUMBER}"
-                echo "Git Commit: ${GIT_COMMIT}"
-                echo "Git Branch: ${GIT_BRANCH}"
-                echo "Docker Repo: ${DOCKER_REPO}"
-                echo "Image Tag: ${DOCKER_IMAGE_TAG}"
-                sh 'echo "Context: $(pwd)" && ls -la'
+                echo "Build Number : ${BUILD_NUMBER}"
+                echo "Git Commit   : ${GIT_COMMIT}"
+                echo "Git Branch   : ${GIT_BRANCH}"
+                echo "Image Tag    : ${DOCKER_IMAGE_TAG}"
+                sh 'ls -la'
                 echo "=============================="
             }
         }
 
-        stage('Checkout') {
-            steps {
-                echo "📥 Clonando repositorio..."
-                checkout scm
-                sh 'echo "Checkout completado"; ls -la | head -20'
-            }
-        }
-
         stage('Verify Dockerfile') {
+            when { environment name: 'IS_CI_COMMIT', value: 'false' }
             steps {
-                echo "🔍 Verificando Dockerfile..."
-                sh '''
-                    if [ -f Dockerfile ]; then
-                        echo "✓ Dockerfile encontrado"
-                        head -10 Dockerfile
-                    else
-                        echo "❌ ERROR: Dockerfile NO encontrado"
-                        echo "Contenido actual:"
-                        ls -la
-                        exit 1
-                    fi
-                '''
+                sh '[ -f Dockerfile ] || { echo "ERROR: Dockerfile no encontrado"; exit 1; }'
             }
         }
 
-        stage('Build Image') {
+        stage('Build & Push Image') {
+            when { environment name: 'IS_CI_COMMIT', value: 'false' }
             steps {
                 container('kaniko') {
-                    echo "🚀 Construyendo imagen Docker..."
                     sh """
-                        echo "Verificando credenciales..."
-                        ls -la /kaniko/.docker/
-
-                        echo "Iniciando Kaniko executor..."
                         /kaniko/executor \\
                             --dockerfile Dockerfile \\
                             --context . \\
@@ -105,51 +102,61 @@ spec:
             }
         }
 
-        stage('Verify Image') {
+        // Actualiza el tag en values.yaml y hace push a Git.
+        // ArgoCD detecta el cambio y sincroniza automaticamente.
+        // REQUISITO: crear credencial en Jenkins con id 'github-pat'
+        //   (usuario GitHub + Personal Access Token con permiso Contents: write).
+        stage('Update Helm Values') {
+            when { environment name: 'IS_CI_COMMIT', value: 'false' }
             steps {
-                echo "✓ Imagen construida exitosamente:"
-                echo "  - ${DOCKER_REPO}:${DOCKER_IMAGE_TAG}"
-                echo "  - ${DOCKER_REPO}:latest"
-            }
-        }
+                withCredentials([usernamePassword(
+                    credentialsId: 'github-pat',
+                    usernameVariable: 'GIT_USER',
+                    passwordVariable: 'GIT_TOKEN'
+                )]) {
+                    sh """
+                        git config user.email "jenkins@ci.ferremat.es"
+                        git config user.name "Jenkins CI"
 
-        stage('Restart Deployment') {
-            steps {
-                echo "🔄 Reiniciando pods con imagen nueva..."
-                container('kubectl') {
-                    sh '''
-                        DEPLOYMENT="main-frontend-app-deployment"
-                        NAMESPACE="ferremat-deploy"
+                        sed -i "s/tag: .*/tag: ${DOCKER_IMAGE_TAG}/" ${HELM_VALUES_PATH}
 
-                        echo "Reiniciando deployment: ${DEPLOYMENT}"
-                        kubectl rollout restart deployment/${DEPLOYMENT} -n ${NAMESPACE}
+                        echo "Tag actualizado en values.yaml:"
+                        grep "tag:" ${HELM_VALUES_PATH}
 
-                        echo "Esperando a que los pods se estabilicen..."
-                        kubectl rollout status deployment/${DEPLOYMENT} -n ${NAMESPACE} --timeout=5m
+                        git add ${HELM_VALUES_PATH}
 
-                        echo "✓ Deployment reiniciado exitosamente"
-                    '''
+                        if git diff --cached --exit-code; then
+                            echo "Sin cambios en values.yaml — nada que commitear"
+                        else
+                            git commit -m "ci: update main-frontend-app tag to ${DOCKER_IMAGE_TAG} [skip ci]"
+
+                            REPO_URL=\$(git remote get-url origin | sed 's|https://||')
+                            BRANCH=\$(echo "\$GIT_BRANCH" | sed 's|origin/||')
+                            git push "https://\${GIT_USER}:\${GIT_TOKEN}@\${REPO_URL}" "HEAD:\${BRANCH}"
+
+                            echo "values.yaml actualizado. ArgoCD sincronizara el tag ${DOCKER_IMAGE_TAG} automaticamente."
+                        fi
+                    """
                 }
-            }
-        }
-
-        stage('Verify Rollout') {
-            steps {
-                echo "✅ Pipeline completado exitosamente"
-                echo "Los nuevos pods están corriendo con la imagen latest"
             }
         }
     }
 
     post {
         always {
-            echo "Pipeline finalizado"
+            echo "Pipeline finalizado — IS_CI_COMMIT=${env.IS_CI_COMMIT}"
         }
         success {
-            echo "✅ BUILD EXITOSO"
+            script {
+                if (env.IS_CI_COMMIT == 'true') {
+                    echo "Build omitido correctamente (commit de CI)"
+                } else {
+                    echo "BUILD EXITOSO — Imagen: ${DOCKER_REPO}:${DOCKER_IMAGE_TAG}"
+                }
+            }
         }
         failure {
-            echo "❌ BUILD FALLIDO - Revisa los logs arriba para detalles"
+            echo "BUILD FALLIDO — Revisa los logs"
         }
     }
 }
