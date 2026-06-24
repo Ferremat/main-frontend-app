@@ -3,7 +3,7 @@ enabled: true
 app:
   image:
     repository: iferlop/main-frontend-app
-    tag: 55-cd044b2
+    tag: 57-a5f2df9
     pullPolicy: Always
   containerPort: 3000
   container:
