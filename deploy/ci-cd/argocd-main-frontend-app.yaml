@@ -6,9 +6,8 @@ metadata:
 spec:
   project: default
   source:
-    # Sustituye con la URL real del repositorio main-frontend-app
     repoURL: https://github.com/Ferremat/main-frontend-app.git
-    targetRevision: main
+    targetRevision: develop
     path: deploy/kubernetes/charts/main-frontend-app
     helm:
       valueFiles:
