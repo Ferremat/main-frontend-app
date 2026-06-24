@@ -31,8 +31,6 @@ spec:
         DOCKER_REPO      = 'iferlop/main-frontend-app'
         DOCKER_IMAGE_TAG = "${BUILD_NUMBER}-${GIT_COMMIT.take(7)}"
         HELM_VALUES_PATH = 'deploy/kubernetes/charts/main-frontend-app/values.yaml'
-        // Bandera para cortar el pipeline si fue disparado por un commit de CI
-        IS_CI_COMMIT     = 'false'
     }
 
     options {
@@ -47,9 +45,10 @@ spec:
             }
         }
 
-        // Detecta si este build fue disparado por el commit que Jenkins mismo hizo
-        // para actualizar values.yaml. Si es así, marca IS_CI_COMMIT=true y los
-        // stages siguientes se saltan, evitando el loop infinito.
+        // Si el commit fue generado por Jenkins (para actualizar values.yaml),
+        // aborta el pipeline via error() — esto detiene TODOS los stages siguientes.
+        // El bloque post{always} convierte el resultado a NOT_BUILT para que no
+        // aparezca como fallo en el historial de Jenkins.
         stage('Guard: Skip CI Commits') {
             steps {
                 script {
@@ -57,16 +56,14 @@ spec:
                     def commitMsg    = sh(returnStdout: true, script: 'git log -1 --format="%s"').trim()
 
                     if (commitAuthor == 'jenkins@ci.ferremat.es' || commitMsg.contains('[skip ci]')) {
-                        env.IS_CI_COMMIT = 'true'
                         currentBuild.description = "Skipped: CI commit by ${commitAuthor}"
-                        echo "Commit generado por CI — saltando build para evitar loop."
+                        error("CI commit detectado — abortando para evitar loop de builds")
                     }
                 }
             }
         }
 
         stage('Debug Info') {
-            when { environment name: 'IS_CI_COMMIT', value: 'false' }
             steps {
                 echo "========== DEBUG INFO =========="
                 echo "Build Number : ${BUILD_NUMBER}"
@@ -79,14 +76,12 @@ spec:
         }
 
         stage('Verify Dockerfile') {
-            when { environment name: 'IS_CI_COMMIT', value: 'false' }
             steps {
                 sh '[ -f Dockerfile ] || { echo "ERROR: Dockerfile no encontrado"; exit 1; }'
             }
         }
 
         stage('Build & Push Image') {
-            when { environment name: 'IS_CI_COMMIT', value: 'false' }
             steps {
                 container('kaniko') {
                     sh """
@@ -106,7 +101,6 @@ spec:
         // ArgoCD detecta el cambio y sincroniza automaticamente.
         // Usa la misma credencial 'github-creds' configurada para el checkout SCM.
         stage('Update Helm Values') {
-            when { environment name: 'IS_CI_COMMIT', value: 'false' }
             steps {
                 withCredentials([usernamePassword(
                     credentialsId: 'github-creds',
@@ -143,19 +137,17 @@ spec:
 
     post {
         always {
-            echo "Pipeline finalizado — IS_CI_COMMIT=${env.IS_CI_COMMIT}"
-        }
-        success {
             script {
-                if (env.IS_CI_COMMIT == 'true') {
+                if (currentBuild.description?.startsWith('Skipped')) {
+                    // Commit de CI detectado: cambia FAILURE a NOT_BUILT
+                    currentBuild.result = 'NOT_BUILT'
                     echo "Build omitido correctamente (commit de CI)"
+                } else if (currentBuild.currentResult == 'SUCCESS') {
+                    echo "BUILD EXITOSO — Imagen: ${env.DOCKER_REPO}:${env.DOCKER_IMAGE_TAG}"
                 } else {
-                    echo "BUILD EXITOSO — Imagen: ${DOCKER_REPO}:${DOCKER_IMAGE_TAG}"
+                    echo "BUILD FALLIDO — Revisa los logs"
                 }
             }
-        }
-        failure {
-            echo "BUILD FALLIDO — Revisa los logs"
         }
     }
 }
